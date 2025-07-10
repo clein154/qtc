@@ -3,7 +3,7 @@ use crate::core::utxo::UtxoSet;
 use crate::storage::Database;
 use crate::consensus::validation::BlockValidator;
 use crate::consensus::monetary::MonetaryPolicy;
-use crate::crypto::hash::Hash256;
+use crate::crypto::hash::{Hash256, Hashable};
 use crate::{QtcError, Result};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};

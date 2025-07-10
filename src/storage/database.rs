@@ -384,6 +384,29 @@ impl Database {
         self.flush()
     }
     
+    pub fn get_all_utxos(&self) -> Result<Vec<(OutPoint, UtxoEntry)>> {
+        let utxo_tree = self.get_tree(TREE_UTXOS)?;
+        let mut utxos = Vec::new();
+        
+        for item in utxo_tree.iter() {
+            match item {
+                Ok((key, value)) => {
+                    if let Ok(utxo) = bincode::deserialize::<UtxoEntry>(&value) {
+                        if let Ok(outpoint) = self.key_to_outpoint(&key) {
+                            utxos.push((outpoint, utxo));
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Error iterating UTXOs: {}", e);
+                    break;
+                }
+            }
+        }
+        
+        Ok(utxos)
+    }
+    
     pub fn get_database_stats(&self) -> Result<DatabaseStats> {
         let mut stats = DatabaseStats::default();
         

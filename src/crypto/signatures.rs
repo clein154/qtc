@@ -43,23 +43,30 @@ impl Signature {
     
     pub fn from_secp256k1(signature: Secp256k1Signature) -> Self {
         // Convert signature to DER format for serialization
-        let der_bytes = signature.serialize_der();
+        let _der_bytes = signature.serialize_der();
+        
+        // Use compact serialization for r and s values
+        let compact_bytes = signature.serialize_compact();
+        let mut r = [0u8; 32];
+        let mut s = [0u8; 32];
+        r.copy_from_slice(&compact_bytes[0..32]);
+        s.copy_from_slice(&compact_bytes[32..64]);
         
         Self {
-            r: r.to_be_bytes(),
-            s: s.to_be_bytes(),
+            r,
+            s,
             recovery_id: 0, // TODO: Implement recovery ID calculation
         }
     }
     
     pub fn to_secp256k1(&self) -> Result<Secp256k1Signature> {
-        let r = secp256k1::scalar::Scalar::from_be_bytes(self.r)
-            .map_err(|e| QtcError::Crypto(format!("Invalid r value: {:?}", e)))?;
-        let s = secp256k1::scalar::Scalar::from_be_bytes(self.s)
-            .map_err(|e| QtcError::Crypto(format!("Invalid s value: {:?}", e)))?;
+        // Reconstruct compact format and parse
+        let mut compact_bytes = [0u8; 64];
+        compact_bytes[0..32].copy_from_slice(&self.r);
+        compact_bytes[32..64].copy_from_slice(&self.s);
         
-        Ok(Secp256k1Signature::from_scalars(r, s)
-            .map_err(|e| QtcError::Crypto(format!("Invalid signature: {}", e)))?)
+        Secp256k1Signature::from_compact(&compact_bytes)
+            .map_err(|e| QtcError::Crypto(format!("Invalid signature: {}", e)))
     }
     
     pub fn recovery_id(&self) -> u8 {
@@ -89,7 +96,7 @@ pub struct SignatureUtils;
 impl SignatureUtils {
     pub fn sign(secret_key: &SecretKey, message_hash: &[u8; 32]) -> Result<Signature> {
         let secp = Secp256k1::new();
-        let message = Message::from_slice(message_hash)
+        let message = Message::from_digest_slice(message_hash)
             .map_err(|e| QtcError::Crypto(format!("Invalid message: {}", e)))?;
         
         let signature = secp.sign_ecdsa(&message, secret_key);
@@ -98,7 +105,7 @@ impl SignatureUtils {
     
     pub fn verify(public_key: &Secp256k1PublicKey, message_hash: &[u8; 32], signature: &Signature) -> Result<bool> {
         let secp = Secp256k1::new();
-        let message = Message::from_slice(message_hash)
+        let message = Message::from_digest_slice(message_hash)
             .map_err(|e| QtcError::Crypto(format!("Invalid message: {}", e)))?;
         
         let secp_signature = signature.to_secp256k1()?;
@@ -111,7 +118,7 @@ impl SignatureUtils {
     
     pub fn recover_public_key(message_hash: &[u8; 32], signature: &Signature) -> Result<Secp256k1PublicKey> {
         let secp = Secp256k1::new();
-        let message = Message::from_slice(message_hash)
+        let message = Message::from_digest_slice(message_hash)
             .map_err(|e| QtcError::Crypto(format!("Invalid message: {}", e)))?;
         
         let recovery_id = secp256k1::ecdsa::RecoveryId::from_i32(signature.recovery_id as i32)

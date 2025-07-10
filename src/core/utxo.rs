@@ -1,6 +1,6 @@
 use crate::core::{Block, Transaction, OutPoint};
 use crate::storage::Database;
-use crate::crypto::hash::Hash256;
+use crate::crypto::hash::{Hash256, Hashable};
 use crate::{QtcError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
