@@ -1,6 +1,6 @@
 use crate::crypto::hash::{Hash256, Hashable};
 use crate::crypto::signatures::Signature;
-use crate::crypto::keys::PublicKey;
+use crate::crypto::keys::{PublicKey, PrivateKey};
 use crate::{QtcError, Result};
 use serde::{Deserialize, Serialize};
 
@@ -243,6 +243,167 @@ impl OutPoint {
     
     pub fn is_null(&self) -> bool {
         self.txid == Hash256::zero() && self.vout == 0xFFFFFFFF
+    }
+}
+
+/// Transaction builder for creating new transactions
+#[derive(Debug)]
+pub struct TransactionBuilder<'a> {
+    wallet: &'a crate::wallet::Wallet,
+    outputs: Vec<TxOutput>,
+    fee_rate: u64,
+    estimated_size: usize,
+}
+
+impl<'a> TransactionBuilder<'a> {
+    pub fn new(wallet: &'a crate::wallet::Wallet) -> Self {
+        Self {
+            wallet,
+            outputs: Vec::new(),
+            fee_rate: 1000, // Default: 1000 satoshis per byte
+            estimated_size: 0,
+        }
+    }
+    
+    pub fn add_output(&mut self, address: &str, amount: u64) -> Result<()> {
+        let script_pubkey = Transaction::address_to_script_pubkey(address);
+        let output = TxOutput {
+            value: amount,
+            script_pubkey,
+        };
+        self.outputs.push(output);
+        self.update_estimated_size();
+        Ok(())
+    }
+    
+    pub fn set_fee_rate(&mut self, fee_rate: u64) {
+        self.fee_rate = fee_rate;
+    }
+    
+    fn update_estimated_size(&mut self) {
+        // Estimate transaction size
+        // Base size: version(4) + input_count(1-9) + output_count(1-9) + lock_time(4)
+        let mut size = 4 + 1 + 1 + 4;
+        
+        // Add estimated input size: outpoint(36) + script_length(1-9) + script(~107) + sequence(4)
+        // Conservative estimate: 148 bytes per input
+        let estimated_inputs = 2; // Conservative estimate
+        size += estimated_inputs * 148;
+        
+        // Add output sizes
+        for output in &self.outputs {
+            size += 8 + 1 + output.script_pubkey.len(); // value(8) + script_length(1-9) + script
+        }
+        
+        self.estimated_size = size;
+    }
+    
+    pub fn build(&mut self) -> Result<Transaction> {
+        if self.outputs.is_empty() {
+            return Err(QtcError::Transaction("No outputs specified".to_string()));
+        }
+        
+        let total_output_value: u64 = self.outputs.iter().map(|o| o.value).sum();
+        let estimated_fee = self.fee_rate * self.estimated_size as u64 / 1000; // Fee rate is per 1000 bytes
+        let total_needed = total_output_value + estimated_fee;
+        
+        // Find UTXOs to spend
+        let addresses = self.wallet.get_addresses();
+        let mut available_utxos = Vec::new();
+        let mut total_available = 0u64;
+        
+        // Get blockchain reference
+        let blockchain = self.wallet.blockchain.read().unwrap();
+        
+        for address in &addresses {
+            let utxos = blockchain.get_utxos(address)?;
+            for (txid, vout, value) in utxos {
+                available_utxos.push((txid, vout, value, address.clone()));
+                total_available += value;
+            }
+        }
+        
+        if total_available < total_needed {
+            return Err(QtcError::Transaction(format!(
+                "Insufficient funds: have {:.8} QTC, need {:.8} QTC",
+                total_available as f64 / 100_000_000.0,
+                total_needed as f64 / 100_000_000.0
+            )));
+        }
+        
+        // Select UTXOs (simple greedy algorithm)
+        available_utxos.sort_by(|a, b| b.2.cmp(&a.2)); // Sort by value descending
+        let mut selected_utxos = Vec::new();
+        let mut selected_value = 0u64;
+        
+        for (txid, vout, value, address) in available_utxos {
+            selected_utxos.push((txid, vout, value, address));
+            selected_value += value;
+            if selected_value >= total_needed {
+                break;
+            }
+        }
+        
+        // Create transaction
+        let mut tx = Transaction::new();
+        
+        // Add inputs
+        for (txid, vout, _value, _address) in &selected_utxos {
+            tx.add_input(OutPoint::new(*txid, *vout), Vec::new()); // Empty signature script for now
+        }
+        
+        // Add outputs
+        for output in &self.outputs {
+            tx.outputs.push(output.clone());
+        }
+        
+        // Add change output if needed
+        let actual_fee = self.fee_rate * tx.size() as u64 / 1000;
+        let change_amount = selected_value.saturating_sub(total_output_value + actual_fee);
+        
+        if change_amount > 546 { // Dust threshold
+            let change_address = self.wallet.get_change_address().unwrap_or_else(|_| {
+                addresses.first().unwrap_or(&"unknown".to_string()).clone()
+            });
+            tx.add_output(change_amount, &change_address);
+        }
+        
+        // Sign the transaction
+        self.sign_transaction(&mut tx, &selected_utxos)?;
+        
+        Ok(tx)
+    }
+    
+    fn sign_transaction(&self, tx: &mut Transaction, selected_utxos: &[(Hash256, u32, u64, String)]) -> Result<()> {
+        for (input_index, (_, _, _, address)) in selected_utxos.iter().enumerate() {
+            // Get private key for this address
+            if let Ok(private_key_wif) = self.wallet.export_private_key(address) {
+                let private_key = PrivateKey::from_wif(&private_key_wif)?;
+                let public_key = private_key.public_key()?;
+                
+                // Sign the input
+                let signature_hash = tx.get_signature_hash(input_index);
+                let signature = private_key.sign(&signature_hash)?;
+                
+                // Create signature script (simplified P2PKH)
+                let mut script = Vec::new();
+                
+                // Add signature
+                let sig_bytes = signature.to_bytes();
+                script.push(sig_bytes.len() as u8);
+                script.extend_from_slice(&sig_bytes);
+                script.push(0x01); // SIGHASH_ALL
+                
+                // Add public key
+                let pubkey_bytes = public_key.to_bytes();
+                script.push(pubkey_bytes.len() as u8);
+                script.extend_from_slice(pubkey_bytes);
+                
+                tx.inputs[input_index].signature_script = script;
+            }
+        }
+        
+        Ok(())
     }
 }
 

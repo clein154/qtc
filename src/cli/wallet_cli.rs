@@ -395,7 +395,7 @@ impl WalletCli {
     }
     
     async fn send_transaction(&self, wallet_name: String, to: String, amount_str: String, fee_rate: Option<u64>, yes: bool) -> Result<()> {
-        let mut wallet = self.db.load_wallet(&wallet_name, self.blockchain.clone())?;
+        let wallet = self.db.load_wallet(&wallet_name, self.blockchain.clone())?;
         
         // Validate recipient address
         if !is_valid_address(&to) {

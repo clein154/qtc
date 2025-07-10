@@ -119,6 +119,18 @@ cargo build --release
 # Get detailed wallet information
 ./target/release/qtcd wallet info my-wallet
 
+# Send QTC between wallets (complete transaction system)
+./target/release/qtcd wallet send my-wallet qtc14iD817oVaGuZuqKXhnB6ADJgUHb8CY77B 0.50000000
+# ➡️ QTC Wallet Preparing transaction:
+# From wallet: my-wallet
+# To address: qtc14iD817oVaGuZuqKXhnB6ADJgUHb8CY77B
+# Amount: 0.50000000 QTC
+# Fee rate: 1000 sat/byte
+# ✅ Transaction created successfully!
+
+# View transaction history
+./target/release/qtcd wallet history my-wallet
+
 # Create multisig wallet (2-of-3, 3-of-5, etc.)
 ./target/release/qtcd wallet multisig create my-multisig
 ```

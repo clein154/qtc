@@ -1,6 +1,6 @@
 use crate::core::{Transaction, TxInput};
+// use crate::core::transaction::OutPoint;
 // use crate::crypto::hash::Hashable;
-use crate::core::transaction::OutPoint;
 use crate::core::Blockchain;
 use crate::crypto::keys::{PrivateKey, KeyPair};
 use crate::crypto::hash::Hash256;
@@ -202,7 +202,18 @@ impl Wallet {
             .map(|addr| addr.address.clone())
     }
     
-    pub fn get_change_address(&mut self) -> Result<String> {
+    pub fn get_change_address(&self) -> Result<String> {
+        // For simple wallets, reuse existing address
+        if self.hd_wallet.is_none() {
+            return Ok(self.addresses.keys().next().unwrap().clone());
+        }
+        
+        // For HD wallets, we would need a mutable reference to generate new addresses
+        // For now, return the first available address
+        Ok(self.addresses.keys().next().unwrap().clone())
+    }
+    
+    pub fn get_change_address_mut(&mut self) -> Result<String> {
         if let Some(hd_wallet) = &mut self.hd_wallet {
             let (address, index) = hd_wallet.get_next_address(true)?;
             let private_key = hd_wallet.get_private_key_for_address(true, index)?;
@@ -229,8 +240,9 @@ impl Wallet {
         }
     }
     
-    pub fn create_transaction(&mut self, to_address: &str, amount: u64, fee_rate: u64) -> Result<Transaction> {
-        let mut builder = TransactionBuilder::new(self);
+    pub fn create_transaction(&self, to_address: &str, amount: u64, fee_rate: u64) -> Result<Transaction> {
+        // Use the TransactionBuilder from core::transaction module
+        let mut builder = crate::core::transaction::TransactionBuilder::new(self);
         builder.add_output(to_address, amount)?;
         builder.set_fee_rate(fee_rate);
         builder.build()
@@ -374,8 +386,6 @@ impl Wallet {
         })
     }
 
-
-
     /// Generate a new PQC address for HD wallets
     pub fn generate_pqc_address(&mut self) -> Result<String> {
         let pqc_keypair = PqcKeyPair::new()?;
@@ -479,120 +489,6 @@ impl Wallet {
             db,
             blockchain,
         })
-    }
-}
-
-pub struct TransactionBuilder<'a> {
-    wallet: &'a mut Wallet,
-    outputs: Vec<(String, u64)>,
-    fee_rate: u64, // satoshis per byte
-    selected_utxos: Vec<(OutPoint, u64)>,
-}
-
-impl<'a> TransactionBuilder<'a> {
-    pub fn new(wallet: &'a mut Wallet) -> Self {
-        Self {
-            wallet,
-            outputs: Vec::new(),
-            fee_rate: 1000, // Default 0.00001 QTC per byte
-            selected_utxos: Vec::new(),
-        }
-    }
-    
-    pub fn add_output(&mut self, address: &str, amount: u64) -> Result<()> {
-        if !crate::crypto::keys::is_valid_address(address) {
-            return Err(QtcError::Wallet("Invalid recipient address".to_string()));
-        }
-        
-        self.outputs.push((address.to_string(), amount));
-        Ok(())
-    }
-    
-    pub fn set_fee_rate(&mut self, fee_rate: u64) {
-        self.fee_rate = fee_rate;
-    }
-    
-    pub fn build(&mut self) -> Result<Transaction> {
-        let total_output_amount: u64 = self.outputs.iter().map(|(_, amount)| amount).sum();
-        
-        // Select UTXOs
-        self.select_utxos(total_output_amount)?;
-        
-        let total_input_amount: u64 = self.selected_utxos.iter().map(|(_, amount)| amount).sum();
-        
-        // Calculate fee (simplified)
-        let estimated_size = 250; // Rough estimate
-        let fee = self.fee_rate * estimated_size;
-        
-        if total_input_amount < total_output_amount + fee {
-            return Err(QtcError::InsufficientFunds {
-                required: total_output_amount + fee,
-                available: total_input_amount,
-            });
-        }
-        
-        // Create transaction
-        let mut tx = Transaction::new();
-        
-        // Add inputs
-        for (outpoint, _) in &self.selected_utxos {
-            tx.add_input(outpoint.clone(), vec![]); // Empty signature script for now
-        }
-        
-        // Add outputs
-        for (address, amount) in &self.outputs {
-            tx.add_output(*amount, address);
-        }
-        
-        // Add change output if needed
-        let change_amount = total_input_amount - total_output_amount - fee;
-        if change_amount > 0 {
-            let change_address = self.wallet.get_change_address()?;
-            tx.add_output(change_amount, &change_address);
-        }
-        
-        // Sign transaction
-        self.wallet.sign_transaction(&mut tx)?;
-        
-        Ok(tx)
-    }
-    
-    fn select_utxos(&mut self, target_amount: u64) -> Result<()> {
-        // Get all UTXOs for wallet addresses
-        let mut all_utxos = Vec::new();
-        
-        for address in self.wallet.get_addresses() {
-            let utxos = {
-                let blockchain = self.wallet.blockchain.read().unwrap();
-                blockchain.get_utxos(&address)?
-            };
-            for (txid, vout, amount) in utxos {
-                all_utxos.push((OutPoint::new(txid, vout), amount));
-            }
-        }
-        
-        // Sort by amount (largest first)
-        all_utxos.sort_by(|a, b| b.1.cmp(&a.1));
-        
-        // Select UTXOs until we have enough
-        let mut selected_amount = 0u64;
-        for (outpoint, amount) in all_utxos {
-            self.selected_utxos.push((outpoint, amount));
-            selected_amount += amount;
-            
-            if selected_amount >= target_amount {
-                break;
-            }
-        }
-        
-        if selected_amount < target_amount {
-            return Err(QtcError::InsufficientFunds {
-                required: target_amount,
-                available: selected_amount,
-            });
-        }
-        
-        Ok(())
     }
 }
 
