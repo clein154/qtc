@@ -1,4 +1,4 @@
-modules = ["rust-stable"]
+modules = ["rust-stable", "python-3.12", "c-clang14", "bash"]
 [nix]
 packages = ["tree", "llvm", "clang", "cmake", "gcc", "openssl", "pkg-config", "libclang", "randomx"]
 channel = "stable-24_05"
