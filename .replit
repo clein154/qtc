@@ -1,4 +1,4 @@
-modules = ["rust"]
+modules = ["rust-stable"]
 [nix]
 packages = ["tree", "llvm", "clang", "cmake", "gcc", "openssl", "pkg-config", "libclang"]
 channel = "stable-24_05"

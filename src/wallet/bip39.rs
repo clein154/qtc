@@ -28,19 +28,34 @@ pub struct HdWallet {
 
 impl Mnemonic {
     pub fn new(word_count: MnemonicType) -> Result<Self> {
-        let mnemonic = Bip39Mnemonic::new(word_count, Language::English);
+        // Generate random entropy for the mnemonic
+        let entropy_size = match word_count {
+            12 => 16,
+            15 => 20,
+            18 => 24,
+            21 => 28,
+            24 => 32,
+            _ => return Err(QtcError::Wallet("Invalid word count".to_string())),
+        };
+        
+        let mut entropy = vec![0u8; entropy_size];
+        use rand::RngCore;
+        rand::thread_rng().fill_bytes(&mut entropy);
+        
+        let mnemonic = Bip39Mnemonic::from_entropy(&entropy)
+            .map_err(|e| QtcError::Wallet(format!("Failed to generate mnemonic: {}", e)))?;
         Ok(Self { inner: mnemonic })
     }
     
     pub fn from_phrase(phrase: &str) -> Result<Self> {
-        let mnemonic = Bip39Mnemonic::from_phrase(phrase, Language::English)
+        let mnemonic = Bip39Mnemonic::parse_in_normalized(Language::English, phrase)
             .map_err(|e| QtcError::Wallet(format!("Invalid mnemonic phrase: {}", e)))?;
         
         Ok(Self { inner: mnemonic })
     }
     
     pub fn phrase(&self) -> String {
-        self.inner.phrase().to_string()
+        self.inner.to_string()
     }
     
     pub fn word_count(&self) -> usize {
@@ -48,7 +63,7 @@ impl Mnemonic {
     }
     
     pub fn words(&self) -> Vec<String> {
-        self.inner.phrase().split_whitespace().map(|s| s.to_string()).collect()
+        self.inner.to_string().split_whitespace().map(|s| s.to_string()).collect()
     }
     
     pub fn to_seed(&self, passphrase: &str) -> Seed {
@@ -59,7 +74,7 @@ impl Mnemonic {
     }
     
     pub fn validate_phrase(phrase: &str) -> bool {
-        Bip39Mnemonic::validate(phrase, Language::English).is_ok()
+        Bip39Mnemonic::parse_in_normalized(Language::English, phrase).is_ok()
     }
     
     pub fn hash(&self) -> Hash256 {

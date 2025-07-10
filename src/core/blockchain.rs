@@ -14,7 +14,7 @@ pub struct Blockchain {
     pub tip: Hash256,
     pub height: u64,
     db: Arc<Database>,
-    utxo_set: Arc<RwLock<UtxoSet>>,
+    pub utxo_set: Arc<RwLock<UtxoSet>>,
     validator: BlockValidator,
     monetary_policy: MonetaryPolicy,
 }

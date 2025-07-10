@@ -32,7 +32,7 @@ pub enum QtcError {
     Serialization(#[from] serde_json::Error),
     
     #[error("Database error: {0}")]
-    Database(#[from] rocksdb::Error),
+    Database(#[from] sled::Error),
     
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),

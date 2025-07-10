@@ -12,6 +12,7 @@ pub struct UtxoEntry {
     pub vout: u32,
     pub value: u64,
     pub script_pubkey: Vec<u8>,
+    pub address: String, // Add address field for easier lookup
     pub height: u64,
     pub is_coinbase: bool,
 }
@@ -71,11 +72,15 @@ impl UtxoSet {
         // Add new UTXOs (outputs)
         for (vout, output) in tx.outputs.iter().enumerate() {
             let outpoint = OutPoint::new(tx_hash, vout as u32);
+            // Extract address from script_pubkey (simplified)
+            let address = Self::script_to_address(&output.script_pubkey).unwrap_or_else(|| "unknown".to_string());
+            
             let utxo_entry = UtxoEntry {
                 txid: tx_hash,
                 vout: vout as u32,
                 value: output.value,
                 script_pubkey: output.script_pubkey.clone(),
+                address,
                 height,
                 is_coinbase: tx.is_coinbase(),
             };
@@ -219,6 +224,20 @@ impl UtxoSet {
         }
         
         false
+    }
+    
+    /// Extract address from script_pubkey (simplified implementation)
+    fn script_to_address(script: &[u8]) -> Option<String> {
+        // This is a simplified implementation
+        // In a real implementation, you'd parse P2PKH, P2SH, Bech32, etc.
+        if script.len() >= 25 && script[0] == 0x76 && script[1] == 0xa9 && script[2] == 0x14 {
+            // P2PKH: OP_DUP OP_HASH160 <20-byte hash> OP_EQUALVERIFY OP_CHECKSIG
+            let hash160 = &script[3..23];
+            // Convert hash160 to base58check address (simplified)
+            Some(format!("qtc1q{}", hex::encode(hash160)))
+        } else {
+            None
+        }
     }
     
     pub fn get_total_supply(&self) -> Result<u64> {

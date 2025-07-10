@@ -42,7 +42,8 @@ impl Signature {
     }
     
     pub fn from_secp256k1(signature: Secp256k1Signature) -> Self {
-        let (r, s) = signature.split();
+        // Convert signature to DER format for serialization
+        let der_bytes = signature.serialize_der();
         
         Self {
             r: r.to_be_bytes(),

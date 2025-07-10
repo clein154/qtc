@@ -94,7 +94,7 @@ impl PrivateKey {
         use crate::crypto::signatures::Signature;
         
         let secp = Secp256k1::new();
-        let message = Message::from_slice(message.as_bytes())
+        let message = Message::from_digest_slice(message.as_bytes())
             .map_err(|e| QtcError::Crypto(format!("Invalid message: {}", e)))?;
         
         let signature = secp.sign_ecdsa(&message, &self.key);
@@ -150,7 +150,7 @@ impl PublicKey {
         let public_key = Secp256k1PublicKey::from_slice(&self.key)
             .map_err(|e| QtcError::Crypto(format!("Invalid public key: {}", e)))?;
         
-        let message = Message::from_slice(message.as_bytes())
+        let message = Message::from_digest_slice(message.as_bytes())
             .map_err(|e| QtcError::Crypto(format!("Invalid message: {}", e)))?;
         
         let secp_signature = signature.to_secp256k1()?;

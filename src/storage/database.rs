@@ -1,5 +1,5 @@
 use crate::core::{Block, Transaction, ChainState, UtxoEntry, OutPoint};
-use crate::crypto::hash::Hash256;
+use crate::crypto::hash::{Hash256, Hashable};
 use crate::wallet::{Wallet, WalletInfo};
 use crate::{QtcError, Result};
 use sled::{Db, Tree};
@@ -16,6 +16,7 @@ const TREE_CHAIN_STATE: &str = "chain_state";
 const TREE_WALLETS: &str = "wallets";
 const TREE_ADDRESSES: &str = "addresses";
 
+#[derive(Debug, Clone)]
 pub struct Database {
     db: Arc<Db>,
 }
@@ -224,7 +225,7 @@ impl Database {
         state_tree.insert(b"current", data)
             .map_err(|e| QtcError::Storage(format!("Failed to save chain state: {}", e)))?;
         
-        log::debug!("💾 Saved chain state at height {}", state.best_height);
+        log::debug!("💾 Saved chain state at height {}", state.height);
         Ok(())
     }
     
@@ -288,6 +289,22 @@ impl Database {
         }
         
         Ok(wallets)
+    }
+    
+    pub fn load_wallet(&self, wallet_id: &str, blockchain: Arc<crate::core::Blockchain>) -> Result<crate::wallet::Wallet> {
+        let wallet_info = self.get_wallet(wallet_id)?
+            .ok_or_else(|| QtcError::Wallet(format!("Wallet not found: {}", wallet_id)))?;
+        
+        // Convert WalletInfo to Wallet (this is a simplified implementation)
+        let wallet = crate::wallet::Wallet {
+            info: wallet_info,
+            addresses: std::collections::HashMap::new(), // Would load from wallet data
+            hd_wallet: None, // Would restore from seed if available
+            db: Arc::new(self.clone()),
+            blockchain,
+        };
+        
+        Ok(wallet)
     }
     
     pub fn delete_wallet(&self, wallet_id: &str) -> Result<()> {
@@ -402,9 +419,4 @@ pub struct DatabaseStats {
     pub wallet_count: usize,
 }
 
-// Error handling for sled database
-impl From<sled::Error> for QtcError {
-    fn from(err: sled::Error) -> Self {
-        QtcError::Storage(format!("Database error: {}", err))
-    }
-}
+// Error handling for sled database is handled by the thiserror derive macro

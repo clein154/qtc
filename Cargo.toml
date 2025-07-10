@@ -66,6 +66,9 @@ thiserror = "1.0"
 # Multisig support
 miniscript = "11.0"
 
+# System info
+num_cpus = "1.16"
+
 [build-dependencies]
 cc = "1.0"
 pkg-config = "0.3"

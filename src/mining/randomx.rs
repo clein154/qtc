@@ -4,11 +4,13 @@ use std::sync::Arc;
 
 // Pure Rust RandomX-like implementation for development
 // This provides similar characteristics to RandomX but without external dependencies
+#[derive(Debug)]
 pub struct RandomXCache {
     key: Vec<u8>,
     initialized: bool,
 }
 
+#[derive(Debug)]
 pub struct RandomXVM {
     cache: Arc<RandomXCache>,
     seed: [u8; 32],
@@ -213,7 +215,6 @@ impl RandomXDataset {
     }
 }
 
-#[derive(Debug)]
 pub struct RandomXMiner {
     vm: RandomXVM,
     cache: Arc<RandomXCache>,

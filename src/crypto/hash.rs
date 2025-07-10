@@ -96,7 +96,7 @@ impl Hashable for String {
 }
 
 // RIPEMD160 hash for address generation
-use ripemd::{Ripemd160, Digest as RipemdDigest};
+use ripemd::Ripemd160;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Hash160([u8; 20]);

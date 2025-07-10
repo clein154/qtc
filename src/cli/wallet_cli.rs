@@ -344,7 +344,7 @@ impl WalletCli {
             let status = if has_balance {
                 style(format!("{:.8} QTC", balance as f64 / 100_000_000.0)).green()
             } else {
-                style("Unused").dim()
+                style("Unused".to_string()).dim()
             };
             
             println!("  {} - {}", style(&address).cyan(), status);

@@ -373,7 +373,7 @@ impl SignatureCollector {
         Ok(psbt_data)
     }
     
-    pub fn from_psbt(psbt_data: &[u8], script: MultisigScript) -> Result<Self> {
+    pub fn from_psbt(psbt_data: &[u8], _script: MultisigScript) -> Result<Self> {
         // Simplified PSBT parsing
         if psbt_data.len() < 5 || &psbt_data[0..4] != b"psbt" || psbt_data[4] != 0xff {
             return Err(QtcError::Multisig("Invalid PSBT format".to_string()));

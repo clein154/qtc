@@ -1,4 +1,5 @@
 use crate::core::{Blockchain, Block, Transaction};
+use crate::crypto::hash::Hashable;
 use crate::network::protocol::Message;
 use crate::{QtcError, Result};
 use axum::{

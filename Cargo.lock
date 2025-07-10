@@ -2339,6 +2339,7 @@ dependencies = [
  "libp2p",
  "log",
  "miniscript",
+ "num_cpus",
  "pkg-config",
  "rand 0.8.5",
  "ripemd",

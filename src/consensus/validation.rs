@@ -1,5 +1,5 @@
 use crate::core::{Block, Transaction, Blockchain};
-use crate::crypto::hash::Hash256;
+use crate::crypto::hash::{Hash256, Hashable};
 use crate::{QtcError, Result};
 use std::collections::HashSet;
 
@@ -309,7 +309,7 @@ impl BlockValidator {
     }
     
     /// Validate coinbase transaction value and outputs
-    fn validate_coinbase_transaction(&self, block: &Block, blockchain: &Blockchain) -> Result<()> {
+    fn validate_coinbase_transaction(&self, block: &Block, _blockchain: &Blockchain) -> Result<()> {
         let coinbase = &block.transactions[0];
         let monetary_policy = crate::consensus::monetary::MonetaryPolicy::new();
         

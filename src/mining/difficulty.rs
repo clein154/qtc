@@ -139,7 +139,7 @@ impl DifficultyCalculator {
         }
         
         // Calculate the compact representation
-        let leading_zeros = difficulty / 8;
+        let _leading_zeros = difficulty / 8;
         let shift = 256 - difficulty;
         
         if shift >= 256 {

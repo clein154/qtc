@@ -59,7 +59,7 @@ impl Miner {
             bc.tip.as_bytes().to_vec()
         };
         
-        let randomx_miner = Arc::new(RandomXMiner::new(&seed, true)?);
+        let randomx_miner = Arc::new(RandomXMiner::new(&seed, Some(threads), true)?);
         let difficulty_calc = DifficultyCalculator::new();
         
         let stats = MiningStats {
@@ -166,7 +166,7 @@ impl Miner {
             let bc = blockchain.read().unwrap();
             bc.tip.as_bytes().to_vec()
         };
-        let thread_miner = RandomXMiner::new(&seed, false)?; // Light mode for worker threads
+        let thread_miner = RandomXMiner::new(&seed, None, false)?; // Light mode for worker threads
         
         let handle = tokio::spawn(async move {
             log::info!("⛏️  Mining thread {} started", thread_id);
@@ -423,7 +423,7 @@ impl Miner {
         }
         
         // Rough estimation based on current difficulty and hashrate
-        let target_time_seconds = 450.0; // 7.5 minutes target
+        let _target_time_seconds = 450.0; // 7.5 minutes target
         let difficulty_factor = 2_u64.pow(stats.current_difficulty);
         let estimated_hashes_needed = difficulty_factor as f64;
         let estimated_seconds = estimated_hashes_needed / stats.hashrate;

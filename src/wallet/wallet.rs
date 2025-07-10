@@ -205,11 +205,16 @@ impl Wallet {
     }
     
     pub fn sign_transaction(&self, tx: &mut Transaction) -> Result<()> {
+        // Pre-calculate signature hashes to avoid borrowing issues
+        let signature_hashes: Vec<_> = (0..tx.inputs.len())
+            .map(|index| tx.get_signature_hash(index))
+            .collect();
+        
         for (index, input) in tx.inputs.iter_mut().enumerate() {
             // Find the private key for this input
             if let Some(private_key) = self.find_private_key_for_input(input)? {
-                let signature_hash = tx.get_signature_hash(index);
-                let signature = private_key.sign(&signature_hash)?;
+                let signature_hash = &signature_hashes[index];
+                let signature = private_key.sign(signature_hash)?;
                 let public_key = private_key.public_key()?;
                 
                 // Create signature script (simplified)
@@ -224,7 +229,7 @@ impl Wallet {
         Ok(())
     }
     
-    fn find_private_key_for_input(&self, input: &TxInput) -> Result<Option<PrivateKey>> {
+    fn find_private_key_for_input(&self, _input: &TxInput) -> Result<Option<PrivateKey>> {
         // This would need to look up the output being spent to determine the address
         // For now, simplified implementation
         for addr_info in self.addresses.values() {
@@ -247,7 +252,7 @@ impl Wallet {
     }
     
     pub fn save(&self) -> Result<()> {
-        self.db.save_wallet(&self.info.name, self)
+        self.db.save_wallet(&self.info.name, &self.info)
     }
     
     pub fn load(name: &str, db: Arc<Database>, blockchain: Arc<Blockchain>) -> Result<Self> {
