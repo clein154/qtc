@@ -1,0 +1,2 @@
+cargo:warning=QTC is using a pure Rust RandomX-like implementation
+cargo:warning=For production use, consider integrating with the official RandomX library
