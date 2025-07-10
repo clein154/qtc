@@ -293,7 +293,7 @@ impl Database {
         Ok(wallets)
     }
     
-    pub fn load_wallet(&self, wallet_id: &str, blockchain: Arc<crate::core::Blockchain>) -> Result<crate::wallet::Wallet> {
+    pub fn load_wallet(&self, wallet_id: &str, blockchain: Arc<std::sync::RwLock<crate::core::Blockchain>>) -> Result<crate::wallet::Wallet> {
         let wallet_info = self.get_wallet(wallet_id)?
             .ok_or_else(|| QtcError::Wallet(format!("Wallet not found: {}", wallet_id)))?;
         

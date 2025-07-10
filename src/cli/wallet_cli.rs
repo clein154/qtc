@@ -6,6 +6,7 @@ use crate::wallet::wallet::WalletType;
 use crate::wallet::bip39::{Mnemonic, MnemonicUtils};
 use crate::wallet::multisig::{MultisigWallet, MultisigUtils, SignatureCollector};
 use crate::crypto::keys::{PrivateKey, is_valid_address};
+use crate::crypto::hash::Hashable;
 use crate::{QtcError, Result};
 use dialoguer::{Input, Password, Confirm, Select, theme::ColorfulTheme};
 use console::{style, Emoji};
@@ -116,7 +117,8 @@ impl WalletCli {
             
             if !Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Have you written down the mnemonic phrase?")
-                .interact()?
+                .interact()
+                .map_err(|e| QtcError::Wallet(format!("Interaction error: {}", e)))?
             {
                 println!("{} Wallet creation cancelled", CROSS);
                 return Ok(());
@@ -390,7 +392,8 @@ impl WalletCli {
         if !yes {
             if !Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Confirm transaction?")
-                .interact()?
+                .interact()
+                .map_err(|e| QtcError::Wallet(format!("Interaction error: {}", e)))?
             {
                 println!("{} Transaction cancelled", CROSS);
                 return Ok(());

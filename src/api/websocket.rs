@@ -15,7 +15,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tokio::sync::{broadcast, mpsc};
-use tokio_tungstenite::tungstenite::protocol::Message as WsMessage;
+use futures_util::{SinkExt, StreamExt, stream::SplitSink, stream::SplitStream};
+use axum::extract::ws::Message as WsMessage;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -334,7 +335,9 @@ async fn handle_websocket(socket: WebSocket, state: WebSocketState) {
     let client_id = uuid::Uuid::new_v4().to_string();
     log::info!("New WebSocket client connected: {}", client_id);
     
-    let (mut sender, mut receiver) = socket.split();
+    let (sender, receiver) = futures_util::StreamExt::split(socket);
+    let mut sender = sender;
+    let mut receiver = receiver;
     let (tx, mut rx) = mpsc::unbounded_channel::<WebSocketEvent>();
     
     // Create client

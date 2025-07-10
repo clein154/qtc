@@ -15,6 +15,7 @@ path = "src/main.rs"
 # Async runtime
 tokio = { version = "1.35", features = ["full"] }
 tokio-tungstenite = "0.21"
+futures-util = "0.3"
 
 # Cryptography
 secp256k1 = { version = "0.28", features = ["rand", "recovery"] }

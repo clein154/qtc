@@ -1,4 +1,5 @@
 use crate::core::{Block, Transaction, Blockchain};
+use crate::crypto::hash::Hashable;
 use crate::crypto::hash::Hash256;
 use crate::{QtcError, Result};
 use serde::{Deserialize, Serialize};

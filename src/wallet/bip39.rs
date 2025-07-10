@@ -48,7 +48,7 @@ impl Mnemonic {
     }
     
     pub fn from_phrase(phrase: &str) -> Result<Self> {
-        let mnemonic = Bip39Mnemonic::parse_in_normalized(Language::English, phrase)
+        let mnemonic = Bip39Mnemonic::parse(phrase)
             .map_err(|e| QtcError::Wallet(format!("Invalid mnemonic phrase: {}", e)))?;
         
         Ok(Self { inner: mnemonic })
@@ -74,7 +74,7 @@ impl Mnemonic {
     }
     
     pub fn validate_phrase(phrase: &str) -> bool {
-        Bip39Mnemonic::parse_in_normalized(Language::English, phrase).is_ok()
+        Bip39Mnemonic::parse(phrase).is_ok()
     }
     
     pub fn hash(&self) -> Hash256 {

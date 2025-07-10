@@ -1,5 +1,5 @@
 use crate::core::{Block, Transaction, Blockchain};
-use crate::crypto::hash::{Hash256, Hashable};
+use crate::crypto::hash::Hashable;
 use crate::{QtcError, Result};
 use std::collections::HashSet;
 

@@ -184,7 +184,6 @@ impl RestApi {
         };
         
         let app = self.create_router(state);
-        
         let addr = format!("0.0.0.0:{}", self.config.rest_port);
         let listener = tokio::net::TcpListener::bind(&addr).await
             .map_err(|e| QtcError::Network(format!("Failed to bind to {}: {}", addr, e)))?;
@@ -197,7 +196,7 @@ impl RestApi {
         Ok(())
     }
     
-    fn create_router(self, state: AppState) -> Router {
+    fn create_router(&self, state: AppState) -> Router {
         let cors = CorsLayer::new()
             .allow_methods(Any)
             .allow_headers(Any)

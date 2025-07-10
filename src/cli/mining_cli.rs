@@ -174,18 +174,26 @@ impl MiningCli {
             miner.mine_single_block().await
         });
         
-        // Update progress bar
+        // Update progress bar in a separate task without using the mining_task handle
         let pb_clone = pb.clone();
+        let (progress_tx, mut progress_rx) = tokio::sync::mpsc::channel(1);
         let progress_task = tokio::spawn(async move {
-            while !mining_task.is_finished() {
-                pb_clone.tick();
-                tokio::time::sleep(Duration::from_millis(100)).await;
+            loop {
+                tokio::select! {
+                    _ = tokio::time::sleep(Duration::from_millis(100)) => {
+                        pb_clone.tick();
+                    }
+                    _ = progress_rx.recv() => {
+                        break;
+                    }
+                }
             }
         });
         
         // Wait for mining or timeout
         let result = tokio::time::timeout(Duration::from_secs(timeout_secs), mining_task).await;
         
+        let _ = progress_tx.send(()).await;
         progress_task.abort();
         pb.finish_and_clear();
         

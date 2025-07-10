@@ -68,8 +68,17 @@ impl From<libp2p::swarm::ConnectionDenied> for QtcError {
     }
 }
 
+impl From<std::convert::Infallible> for QtcError {
+    fn from(_: std::convert::Infallible) -> Self {
+        // This should never happen since Infallible represents impossible errors
+        unreachable!("Infallible errors should never occur")
+    }
+}
+
+
+
 impl From<bitcoin::bip32::Error> for QtcError {
     fn from(err: bitcoin::bip32::Error) -> Self {
-        QtcError::Wallet(format!("BIP32 error: {}", err))
+        QtcError::Crypto(format!("BIP32 error: {}", err))
     }
 }

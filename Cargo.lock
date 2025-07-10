@@ -2753,6 +2753,7 @@ dependencies = [
  "console",
  "dialoguer",
  "env_logger",
+ "futures-util",
  "hdpath",
  "hex",
  "indicatif",

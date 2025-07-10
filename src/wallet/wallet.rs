@@ -43,14 +43,14 @@ pub struct WalletAddress {
 #[derive(Debug)]
 pub struct Wallet {
     pub info: WalletInfo,
-    addresses: HashMap<String, WalletAddress>,
-    hd_wallet: Option<HdWallet>,
-    db: Arc<Database>,
-    blockchain: Arc<Blockchain>,
+    pub addresses: HashMap<String, WalletAddress>,
+    pub hd_wallet: Option<HdWallet>,
+    pub db: Arc<Database>,
+    pub blockchain: Arc<std::sync::RwLock<Blockchain>>,
 }
 
 impl Wallet {
-    pub fn new_simple(name: String, db: Arc<Database>, blockchain: Arc<Blockchain>) -> Result<Self> {
+    pub fn new_simple(name: String, db: Arc<Database>, blockchain: Arc<std::sync::RwLock<Blockchain>>) -> Result<Self> {
         let keypair = KeyPair::new()?;
         let address = keypair.address();
         
@@ -83,7 +83,7 @@ impl Wallet {
         })
     }
     
-    pub fn new_hd(name: String, mnemonic: &Mnemonic, passphrase: &str, db: Arc<Database>, blockchain: Arc<Blockchain>) -> Result<Self> {
+    pub fn new_hd(name: String, mnemonic: &Mnemonic, passphrase: &str, db: Arc<Database>, blockchain: Arc<std::sync::RwLock<Blockchain>>) -> Result<Self> {
         let hd_wallet = HdWallet::new(mnemonic, passphrase)?;
         
         let info = WalletInfo {
@@ -110,7 +110,7 @@ impl Wallet {
         Ok(wallet)
     }
     
-    pub fn from_mnemonic_phrase(name: String, phrase: &str, passphrase: &str, db: Arc<Database>, blockchain: Arc<Blockchain>) -> Result<Self> {
+    pub fn from_mnemonic_phrase(name: String, phrase: &str, passphrase: &str, db: Arc<Database>, blockchain: Arc<std::sync::RwLock<Blockchain>>) -> Result<Self> {
         let mnemonic = Mnemonic::from_phrase(phrase)?;
         Self::new_hd(name, &mnemonic, passphrase, db, blockchain)
     }
@@ -149,7 +149,10 @@ impl Wallet {
         let mut total_balance = 0u64;
         
         for address in self.addresses.keys() {
-            let balance = self.blockchain.get_balance(address)?;
+            let balance = {
+                let blockchain = self.blockchain.read().unwrap();
+                blockchain.get_balance(address)?
+            };
             total_balance += balance;
         }
         
@@ -161,7 +164,8 @@ impl Wallet {
             return Err(QtcError::Wallet("Address not found in wallet".to_string()));
         }
         
-        self.blockchain.get_balance(address)
+        let blockchain = self.blockchain.read().unwrap();
+        blockchain.get_balance(address)
     }
     
     pub fn get_addresses(&self) -> Vec<String> {
@@ -257,7 +261,7 @@ impl Wallet {
         self.db.save_wallet(&self.info.name, &self.info)
     }
     
-    pub fn load(name: &str, db: Arc<Database>, blockchain: Arc<Blockchain>) -> Result<Self> {
+    pub fn load(name: &str, db: Arc<Database>, blockchain: Arc<std::sync::RwLock<Blockchain>>) -> Result<Self> {
         db.load_wallet(name, blockchain)
     }
     
@@ -380,7 +384,10 @@ impl<'a> TransactionBuilder<'a> {
         let mut all_utxos = Vec::new();
         
         for address in self.wallet.get_addresses() {
-            let utxos = self.wallet.blockchain.get_utxos(&address)?;
+            let utxos = {
+                let blockchain = self.wallet.blockchain.read().unwrap();
+                blockchain.get_utxos(&address)?
+            };
             for (txid, vout, amount) in utxos {
                 all_utxos.push((OutPoint::new(txid, vout), amount));
             }
@@ -423,7 +430,7 @@ mod tests {
     fn test_simple_wallet_creation() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let db = Arc::new(Database::new(temp_dir.path().join("test.db"))?);
-        let blockchain = Arc::new(Blockchain::new(db.clone())?);
+        let blockchain = Arc::new(std::sync::RwLock::new(Blockchain::new(db.clone())?));
         
         let wallet = Wallet::new_simple("test_wallet".to_string(), db, blockchain)?;
         
@@ -437,9 +444,9 @@ mod tests {
     fn test_hd_wallet_creation() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let db = Arc::new(Database::new(temp_dir.path().join("test.db"))?);
-        let blockchain = Arc::new(Blockchain::new(db.clone())?);
+        let blockchain = Arc::new(std::sync::RwLock::new(Blockchain::new(db.clone())?));
         
-        let mnemonic = Mnemonic::new(bip39::MnemonicType::Words12)?;
+        let mnemonic = Mnemonic::new(12)?;
         let wallet = Wallet::new_hd("test_hd_wallet".to_string(), &mnemonic, "", db, blockchain)?;
         
         assert!(matches!(wallet.info.wallet_type, WalletType::HD));
