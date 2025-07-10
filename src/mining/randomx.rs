@@ -130,7 +130,7 @@ impl RandomXVM {
         })
     }
     
-    pub fn calculate_hash(&mut self, input: &[u8]) -> Result<RandomXHash> {
+    pub fn calculate_hash(&self, input: &[u8]) -> Result<RandomXHash> {
         // Pure Rust implementation of a RandomX-like hash function
         // This combines multiple SHA-256 rounds with the cache key for complexity
         
@@ -255,7 +255,7 @@ impl RandomXMiner {
         })
     }
     
-    pub fn hash(&mut self, input: &[u8]) -> Result<RandomXHash> {
+    pub fn hash(&self, input: &[u8]) -> Result<RandomXHash> {
         self.vm.calculate_hash(input)
     }
     

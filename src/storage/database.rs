@@ -444,6 +444,15 @@ pub struct DatabaseStats {
     pub transaction_count: usize,
     pub utxo_count: usize,
     pub wallet_count: usize,
+    pub blocks_size: usize,
+    pub utxo_size: usize,
+    pub total_size: u64,
+}
+
+impl DatabaseStats {
+    pub fn total_size(&self) -> u64 {
+        self.total_size
+    }
 }
 
 // Error handling for sled database is handled by the thiserror derive macro

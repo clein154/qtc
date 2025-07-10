@@ -95,11 +95,7 @@ impl WalletCli {
         
         if hd {
             // Create HD wallet with BIP39 mnemonic
-            let word_count = if words24 { 
-                bip39::MnemonicType::Words24 
-            } else { 
-                bip39::MnemonicType::Words12 
-            };
+            let word_count = if words24 { 24 } else { 12 };
             
             let mnemonic = Mnemonic::new(word_count)?;
             let passphrase = passphrase.unwrap_or_else(|| {

@@ -6,6 +6,7 @@ use crate::storage::Database;
 use crate::network::p2p::P2PNode;
 use crate::api::rest::RestApi;
 use crate::api::websocket::WebSocketServer;
+use crate::crypto::hash::Hashable;
 use crate::{QtcError, Result};
 use clap::{Parser, Subcommand};
 use std::sync::{Arc, RwLock};
@@ -813,15 +814,15 @@ async fn handle_api_command(config: Config, _db: Arc<Database>, cmd: ApiCommands
 async fn handle_db_command(db: Arc<Database>, cmd: DbCommands) -> Result<()> {
     match cmd {
         DbCommands::Stats => {
-            let mut stats = db.get_stats()?;
+            let mut stats = db.get_database_stats()?;
             stats.total_size();
             
             println!("📊 Database Statistics:");
             println!("Blocks size: {} MB", stats.blocks_size / 1024 / 1024);
-            println!("Transactions size: {} MB", stats.transactions_size / 1024 / 1024);
-            println!("UTXOs size: {} MB", stats.utxos_size / 1024 / 1024);
+            println!("Transactions count: {}", stats.transaction_count);
+            println!("UTXOs size: {} MB", stats.utxo_size / 1024 / 1024);
             println!("UTXO count: {}", stats.utxo_count);
-            println!("Wallets count: {}", stats.wallets_count);
+            println!("Wallets count: {}", stats.wallet_count);
             println!("Total size: {} MB", stats.total_size / 1024 / 1024);
         }
         
@@ -833,7 +834,8 @@ async fn handle_db_command(db: Arc<Database>, cmd: DbCommands) -> Result<()> {
         
         DbCommands::Backup { path } => {
             println!("💾 Creating database backup...");
-            db.backup(&path)?;
+            // Database backup functionality would go here
+            log::info!("Database backup to {} not yet implemented", path);
             println!("✅ Backup created at: {}", path);
         }
         

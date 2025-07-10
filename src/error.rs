@@ -57,4 +57,19 @@ pub enum QtcError {
     
     #[error("Multisig error: {0}")]
     Multisig(String),
+    
+    #[error("P2P connection denied")]
+    ConnectionDenied,
+}
+
+impl From<libp2p::swarm::ConnectionDenied> for QtcError {
+    fn from(_: libp2p::swarm::ConnectionDenied) -> Self {
+        QtcError::ConnectionDenied
+    }
+}
+
+impl From<bitcoin::bip32::Error> for QtcError {
+    fn from(err: bitcoin::bip32::Error) -> Self {
+        QtcError::Wallet(format!("BIP32 error: {}", err))
+    }
 }

@@ -2,7 +2,7 @@ use crate::crypto::keys::{PrivateKey, PublicKey, KeyPair};
 use crate::crypto::hash::Hash256;
 use crate::{QtcError, Result};
 use bip39::{Mnemonic as Bip39Mnemonic, Language};
-use bitcoin::bip32::{ExtendedPrivKey, ExtendedPubKey, DerivationPath, ChildNumber};
+use bitcoin::bip32::{Xpriv, Xpub, DerivationPath, ChildNumber};
 use bitcoin::Network;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -19,7 +19,7 @@ pub struct Seed {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HdWallet {
-    pub master_key: Vec<u8>, // Serialized ExtendedPrivKey
+    pub master_key: Vec<u8>, // Serialized Xpriv
     pub mnemonic_hash: Hash256, // Hash of mnemonic for verification
     pub account_index: u32,
     pub next_external_index: u32,
@@ -67,9 +67,9 @@ impl Mnemonic {
     }
     
     pub fn to_seed(&self, passphrase: &str) -> Seed {
-        let seed = self.inner.to_seed(passphrase);
+        let seed_bytes = self.inner.to_seed(passphrase);
         Seed {
-            bytes: seed.as_bytes().to_vec(),
+            bytes: seed_bytes.to_vec(),
         }
     }
     
@@ -87,8 +87,8 @@ impl Seed {
         &self.bytes
     }
     
-    pub fn to_master_key(&self) -> Result<ExtendedPrivKey> {
-        ExtendedPrivKey::new_master(Network::Bitcoin, &self.bytes)
+    pub fn to_master_key(&self) -> Result<Xpriv> {
+        Xpriv::new_master(Network::Bitcoin, &self.bytes)
             .map_err(|e| QtcError::Wallet(format!("Failed to create master key: {}", e)))
     }
 }
@@ -99,7 +99,7 @@ impl HdWallet {
         let master_key = seed.to_master_key()?;
         
         Ok(Self {
-            master_key: master_key.encode(),
+            master_key: master_key.encode().to_vec(),
             mnemonic_hash: mnemonic.hash(),
             account_index: 0,
             next_external_index: 0,
@@ -112,12 +112,14 @@ impl HdWallet {
         Self::new(&mnemonic, passphrase)
     }
     
-    pub fn get_master_key(&self) -> Result<ExtendedPrivKey> {
-        ExtendedPrivKey::decode(&self.master_key)
+    pub fn get_master_key(&self) -> Result<Xpriv> {
+        let bytes: [u8; 78] = self.master_key.as_slice().try_into()
+            .map_err(|_| QtcError::Wallet("Invalid master key length".to_string()))?;
+        Xpriv::decode(&bytes)
             .map_err(|e| QtcError::Wallet(format!("Failed to decode master key: {}", e)))
     }
     
-    pub fn derive_account_key(&self, account: u32) -> Result<ExtendedPrivKey> {
+    pub fn derive_account_key(&self, account: u32) -> Result<Xpriv> {
         let master_key = self.get_master_key()?;
         let secp = secp256k1::Secp256k1::new();
         
@@ -131,7 +133,7 @@ impl HdWallet {
             .map_err(|e| QtcError::Wallet(format!("Failed to derive account key: {}", e)))
     }
     
-    pub fn derive_address_key(&self, account: u32, change: bool, index: u32) -> Result<ExtendedPrivKey> {
+    pub fn derive_address_key(&self, account: u32, change: bool, index: u32) -> Result<Xpriv> {
         let account_key = self.derive_account_key(account)?;
         let secp = secp256k1::Secp256k1::new();
         
@@ -206,7 +208,7 @@ impl HdWallet {
     pub fn export_xpub(&self) -> Result<String> {
         let master_key = self.get_master_key()?;
         let secp = secp256k1::Secp256k1::new();
-        let public_key = ExtendedPubKey::from_priv(&secp, &master_key);
+        let public_key = Xpub::from_priv(&secp, &master_key);
         Ok(public_key.to_string())
     }
 }

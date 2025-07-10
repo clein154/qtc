@@ -302,7 +302,7 @@ async fn get_chain_stats(State(state): State<AppState>) -> Json<ApiResponse<Hash
         }
     }
     
-    if let Ok(db_stats) = state.db.get_stats() {
+    if let Ok(db_stats) = state.db.get_database_stats() {
         stats.insert("utxo_count".to_string(), serde_json::Value::from(db_stats.utxo_count));
         stats.insert("database_size".to_string(), serde_json::Value::from(db_stats.total_size));
     }

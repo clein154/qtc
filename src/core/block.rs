@@ -48,17 +48,17 @@ impl Block {
             let mut next_level = Vec::new();
             
             for chunk in hashes.chunks(2) {
-                let combined = if chunk.len() == 2 {
-                    let mut combined_bytes = Vec::new();
-                    combined_bytes.extend_from_slice(chunk[0].as_bytes());
-                    combined_bytes.extend_from_slice(chunk[1].as_bytes());
-                    combined_bytes
+                let combined_bytes = if chunk.len() == 2 {
+                    let mut bytes = Vec::new();
+                    bytes.extend_from_slice(chunk[0].as_bytes());
+                    bytes.extend_from_slice(chunk[1].as_bytes());
+                    bytes
                 } else {
                     // Duplicate the last hash if odd number
-                    let mut combined_bytes = Vec::new();
-                    combined_bytes.extend_from_slice(chunk[0].as_bytes());
-                    combined_bytes.extend_from_slice(chunk[0].as_bytes());
-                    combined_bytes
+                    let mut bytes = Vec::new();
+                    bytes.extend_from_slice(chunk[0].as_bytes());
+                    bytes.extend_from_slice(chunk[0].as_bytes());
+                    bytes
                 };
                 
                 next_level.push(Hash256::hash(&combined_bytes));

@@ -1,5 +1,6 @@
 use crate::cli::commands::MiningCommands;
 use crate::core::Blockchain;
+use crate::crypto::hash::Hashable;
 use crate::mining::{Miner, RandomXMiner};
 use crate::mining::difficulty::{DifficultyCalculator, DifficultyAnalyzer, MiningProfitability};
 use crate::crypto::keys::is_valid_address;
@@ -278,7 +279,7 @@ impl MiningCli {
         
         pb.set_message("Running benchmark...");
         
-        let miner = match RandomXMiner::new(&seed, false) {
+        let miner = match RandomXMiner::new(&seed, None, false) {
             Ok(miner) => miner,
             Err(e) => {
                 pb.finish_and_clear();

@@ -182,13 +182,14 @@ impl P2PNode {
         
         // Create swarm with simplified configuration for compatibility
         let mut swarm = SwarmBuilder::with_existing_identity(local_key)
-            .with_tokio_executor()
+            .with_tokio()
             .with_tcp(tcp::Config::default(), noise::Config::new, yamux::Config::default).unwrap()
             .with_behaviour(|_| behaviour).unwrap()
             .build();
         
         // Listen on the specified port
-        swarm.listen_on(format!("/ip4/0.0.0.0/tcp/{}", port).parse()?)
+        swarm.listen_on(format!("/ip4/0.0.0.0/tcp/{}", port).parse()
+            .map_err(|e| QtcError::Network(format!("Failed to parse address: {}", e)))?)
             .map_err(|e| QtcError::Network(format!("Failed to listen: {}", e)))?;
         
         // Create communication channels
@@ -258,7 +259,7 @@ impl P2PNode {
                 for (peer_id, multiaddr) in list {
                     log::info!("🔍 Discovered peer via mDNS: {} at {}", peer_id, multiaddr);
                     self.swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
-                    self.swarm.dial(multiaddr)?;
+                    self.swarm.dial(multiaddr).map_err(|e| QtcError::Network(format!("Failed to dial: {}", e)))?;
                 }
             }
             
@@ -274,7 +275,7 @@ impl P2PNode {
                 }
             }
             
-            libp2p::swarm::SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event { peer, result })) => {
+            libp2p::swarm::SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event { peer, connection: _, result })) => {
                 match result {
                     Ok(duration) => {
                         if let Some(peer_info) = self.peers.get_mut(&peer) {

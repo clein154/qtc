@@ -48,7 +48,7 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 
 # Networking
-libp2p = { version = "0.53", features = ["tcp", "mdns", "noise", "yamux", "gossipsub", "kad", "ping", "identify"] }
+libp2p = { version = "0.53", features = ["tcp", "mdns", "noise", "yamux", "gossipsub", "kad", "ping", "identify", "tokio", "macros"] }
 
 # RandomX (via FFI)
 libc = "0.2"
