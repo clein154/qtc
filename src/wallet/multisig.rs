@@ -1,11 +1,11 @@
-use crate::core::{Transaction, TxInput, TxOutput};
+use crate::core::Transaction;
 use crate::crypto::keys::{PrivateKey, PublicKey};
 use crate::crypto::signatures::Signature;
 use crate::crypto::hash::Hash256;
 use crate::{QtcError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use miniscript::{Miniscript, Terminal, MiniscriptKey};
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MultisigScript {

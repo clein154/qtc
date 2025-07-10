@@ -1,10 +1,10 @@
 use crate::cli::commands::{WalletCommands, MultisigCommands};
 use crate::core::Blockchain;
 use crate::storage::Database;
-use crate::wallet::{Wallet, WalletInfo};
+use crate::wallet::Wallet;
 use crate::wallet::wallet::WalletType;
-use crate::wallet::bip39::{Mnemonic, MnemonicUtils};
-use crate::wallet::multisig::{MultisigWallet, MultisigUtils, SignatureCollector};
+use crate::wallet::bip39::Mnemonic;
+use crate::wallet::multisig::{MultisigWallet, MultisigUtils};
 use crate::crypto::keys::{PrivateKey, is_valid_address};
 use crate::crypto::hash::Hashable;
 use crate::{QtcError, Result};

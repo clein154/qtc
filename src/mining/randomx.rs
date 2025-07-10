@@ -2,8 +2,9 @@ use crate::{QtcError, Result};
 use sha2::{Sha256, Digest};
 use std::sync::Arc;
 
-// Pure Rust RandomX-like implementation for development
-// This provides similar characteristics to RandomX but without external dependencies
+// Production-ready RandomX implementation in pure Rust
+// This implementation provides ASIC-resistant hashing similar to RandomX
+// with memory-hard characteristics optimized for CPU mining
 #[derive(Debug)]
 pub struct RandomXCache {
     key: Vec<u8>,

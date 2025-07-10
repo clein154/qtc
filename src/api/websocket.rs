@@ -1,6 +1,6 @@
-use crate::core::{Blockchain, Block, Transaction};
+use crate::core::{Blockchain, Transaction};
 use crate::crypto::hash::Hashable;
-use crate::network::protocol::Message;
+
 use crate::{QtcError, Result};
 use axum::{
     extract::{
@@ -15,8 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tokio::sync::{broadcast, mpsc};
-use futures_util::{SinkExt, StreamExt, stream::SplitSink, stream::SplitStream};
-use axum::extract::ws::Message as WsMessage;
+use futures_util::{SinkExt, StreamExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]

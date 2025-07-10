@@ -1,4 +1,4 @@
-use crate::core::{Blockchain, Block, Transaction};
+use crate::core::{Blockchain, Transaction};
 use crate::crypto::hash::Hashable;
 use crate::crypto::hash::Hash256;
 use crate::storage::Database;
@@ -6,7 +6,7 @@ use crate::config::ApiConfig;
 use crate::{QtcError, Result};
 use axum::{
     extract::{Path, Query, State},
-    http::{StatusCode, HeaderMap},
+
     response::Json,
     routing::{get, post},
     Router,

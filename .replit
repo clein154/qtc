@@ -1,6 +1,6 @@
 modules = ["rust-stable"]
 [nix]
-packages = ["tree", "llvm", "clang", "cmake", "gcc", "openssl", "pkg-config", "libclang"]
+packages = ["tree", "llvm", "clang", "cmake", "gcc", "openssl", "pkg-config", "libclang", "randomx"]
 channel = "stable-24_05"
 
 [workflows]

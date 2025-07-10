@@ -1,5 +1,5 @@
 use crate::core::{Block, Blockchain};
-use crate::mining::randomx::{RandomXMiner, RandomXHash};
+use crate::mining::randomx::RandomXMiner;
 use crate::mining::difficulty::DifficultyCalculator;
 use crate::crypto::hash::Hash256;
 use crate::{QtcError, Result};

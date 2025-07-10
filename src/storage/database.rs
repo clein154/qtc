@@ -2,7 +2,7 @@ use crate::core::{Block, Transaction, UtxoEntry};
 use crate::core::blockchain::ChainState;
 use crate::core::transaction::OutPoint;
 use crate::crypto::hash::{Hash256, Hashable};
-use crate::wallet::{Wallet, WalletInfo};
+use crate::wallet::WalletInfo;
 use crate::{QtcError, Result};
 use sled::{Db, Tree};
 use serde::{Deserialize, Serialize};
