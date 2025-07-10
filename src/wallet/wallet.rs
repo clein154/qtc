@@ -258,7 +258,7 @@ impl Wallet {
     }
     
     pub fn save(&self) -> Result<()> {
-        self.db.save_wallet(&self.info.name, &self.info)
+        self.db.save_wallet_complete(self)
     }
     
     pub fn load(name: &str, db: Arc<Database>, blockchain: Arc<std::sync::RwLock<Blockchain>>) -> Result<Self> {

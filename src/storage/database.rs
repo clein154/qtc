@@ -2,7 +2,7 @@ use crate::core::{Block, Transaction, UtxoEntry};
 use crate::core::blockchain::ChainState;
 use crate::core::transaction::OutPoint;
 use crate::crypto::hash::{Hash256, Hashable};
-use crate::wallet::WalletInfo;
+use crate::wallet::{WalletInfo, wallet::WalletAddress};
 use crate::{QtcError, Result};
 use sled::{Db, Tree};
 use serde::{Deserialize, Serialize};
@@ -258,6 +258,31 @@ impl Database {
         Ok(())
     }
     
+    // Save complete wallet data including addresses
+    pub fn save_wallet_complete(&self, wallet: &crate::wallet::Wallet) -> Result<()> {
+        // Save wallet info
+        self.save_wallet(&wallet.info.name, &wallet.info)?;
+        
+        // Save wallet addresses
+        let addr_tree = self.get_tree(TREE_ADDRESSES)?;
+        for (address, wallet_address) in &wallet.addresses {
+            let addr_data = WalletAddressData {
+                wallet_id: wallet.info.name.clone(),
+                address_info: wallet_address.clone(),
+            };
+            
+            let data = bincode::serialize(&addr_data)
+                .map_err(|e| QtcError::Storage(format!("Failed to serialize wallet address: {}", e)))?;
+            
+            let key = format!("{}:{}", wallet.info.name, address);
+            addr_tree.insert(key.as_bytes(), data)
+                .map_err(|e| QtcError::Storage(format!("Failed to save wallet address: {}", e)))?;
+        }
+        
+        log::debug!("💾 Saved complete wallet data for {}", wallet.info.name);
+        Ok(())
+    }
+    
     pub fn get_wallet(&self, wallet_id: &str) -> Result<Option<WalletInfo>> {
         let wallet_tree = self.get_tree(TREE_WALLETS)?;
         
@@ -297,10 +322,35 @@ impl Database {
         let wallet_info = self.get_wallet(wallet_id)?
             .ok_or_else(|| QtcError::Wallet(format!("Wallet not found: {}", wallet_id)))?;
         
-        // Convert WalletInfo to Wallet (this is a simplified implementation)
+        // Load wallet addresses
+        let mut addresses = std::collections::HashMap::new();
+        let addr_tree = self.get_tree(TREE_ADDRESSES)?;
+        
+        for item in addr_tree.iter() {
+            match item {
+                Ok((key, value)) => {
+                    if let Ok(key_str) = String::from_utf8(key.to_vec()) {
+                        if key_str.starts_with(&format!("{}:", wallet_id)) {
+                            if let Ok(addr_data) = bincode::deserialize::<WalletAddressData>(&value) {
+                                addresses.insert(
+                                    addr_data.address_info.address.clone(),
+                                    addr_data.address_info
+                                );
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Error loading wallet addresses: {}", e);
+                    break;
+                }
+            }
+        }
+        
+        // Convert WalletInfo to Wallet with loaded addresses
         let wallet = crate::wallet::Wallet {
             info: wallet_info,
-            addresses: std::collections::HashMap::new(), // Would load from wallet data
+            addresses,
             hd_wallet: None, // Would restore from seed if available
             db: Arc::new(self.clone()),
             blockchain,
@@ -436,6 +486,12 @@ impl Database {
 pub struct AddressInfo {
     pub wallet_id: String,
     pub derivation_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WalletAddressData {
+    pub wallet_id: String,
+    pub address_info: WalletAddress,
 }
 
 #[derive(Debug, Default)]

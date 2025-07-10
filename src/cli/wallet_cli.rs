@@ -308,7 +308,11 @@ impl WalletCli {
                 }
                 None => {
                     // Simple wallet - return existing address
-                    wallet.get_addresses()[0].clone()
+                    let addresses = wallet.get_addresses();
+                    if addresses.is_empty() {
+                        return Err(QtcError::Wallet("No addresses found in wallet".to_string()));
+                    }
+                    addresses[0].clone()
                 }
             }
         };

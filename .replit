@@ -19,6 +19,10 @@ args = "QTC Blockchain"
 task = "workflow.run"
 args = "qtc_test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Build and Test"
+
 [[workflows.workflow]]
 name = "QTC Blockchain"
 author = "agent"
@@ -34,6 +38,14 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cargo run -- --help"
+
+[[workflows.workflow]]
+name = "Build and Test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cargo build --bin qtcd && echo \"Build complete!\" && ./target/debug/qtcd --data-dir qtc-test-data wallet new-address test-wallet"
 
 [[ports]]
 localPort = 8000

@@ -1,0 +1,41 @@
+=== QTC WALLET ADDRESS FIX TEST ===
+Creating new wallet...
+🌟 Quantum Goldchain (QTC) Node Starting...
+⛓️  Initiating Real-World Launch Protocol Mode
+🧑‍💻 Jake online. Mission status: Hardcore Blockchain Implementation Mode ENGAGED
+💼 QTC Wallet Creating new wallet: test-wallet
+✅ Simple wallet 'test-wallet' created successfully!
+Address: qtc1MaJkN4FymPjz2FK5b7RAZfoWGCB4ytbEN
+
+Checking wallet info...
+🌟 Quantum Goldchain (QTC) Node Starting...
+⛓️  Initiating Real-World Launch Protocol Mode
+🧑‍💻 Jake online. Mission status: Hardcore Blockchain Implementation Mode ENGAGED
+💼 QTC Wallet Wallet Information: test-wallet
+Type: Simple
+Created: 2025-07-10 20:06:47
+Encrypted: false
+Address count: 1
+Balance: 0.00000000 QTC
+
+Listing wallet addresses...
+🌟 Quantum Goldchain (QTC) Node Starting...
+⛓️  Initiating Real-World Launch Protocol Mode
+🧑‍💻 Jake online. Mission status: Hardcore Blockchain Implementation Mode ENGAGED
+🔑 QTC Wallet Addresses for wallet: test-wallet
+  qtc1MaJkN4FymPjz2FK5b7RAZfoWGCB4ytbEN - Unused
+
+Creating new address...
+🌟 Quantum Goldchain (QTC) Node Starting...
+⛓️  Initiating Real-World Launch Protocol Mode
+🧑‍💻 Jake online. Mission status: Hardcore Blockchain Implementation Mode ENGAGED
+🔑 New Receiving address for wallet 'test-wallet': qtc1MaJkN4FymPjz2FK5b7RAZfoWGCB4ytbEN
+
+Listing addresses again...
+🌟 Quantum Goldchain (QTC) Node Starting...
+⛓️  Initiating Real-World Launch Protocol Mode
+🧑‍💻 Jake online. Mission status: Hardcore Blockchain Implementation Mode ENGAGED
+🔑 QTC Wallet Addresses for wallet: test-wallet
+  qtc1MaJkN4FymPjz2FK5b7RAZfoWGCB4ytbEN - Unused
+
+=== TEST COMPLETE ===
