@@ -37,8 +37,8 @@ impl Blockchain {
         // Try to load existing blockchain
         if let Ok(state) = db.get_chain_state() {
             Ok(Self {
-                tip: state.tip,
-                height: state.height,
+                tip: state.as_ref().unwrap().tip,
+                height: state.as_ref().unwrap().height,
                 db,
                 utxo_set,
                 validator,
@@ -194,7 +194,7 @@ impl Blockchain {
     
     pub fn get_current_difficulty(&self) -> Result<u32> {
         let state = self.db.get_chain_state()?;
-        Ok(state.difficulty)
+        Ok(state.unwrap_or_default().difficulty)
     }
     
     pub fn calculate_total_supply(&self, height: u64) -> u64 {
@@ -249,6 +249,6 @@ impl Blockchain {
     }
     
     pub fn get_chain_info(&self) -> Result<ChainState> {
-        self.db.get_chain_state()
+        self.db.get_chain_state().map(|opt| opt.unwrap_or_default())
     }
 }

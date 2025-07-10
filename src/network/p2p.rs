@@ -2,6 +2,7 @@ use crate::core::{Block, Transaction, Blockchain};
 use crate::network::protocol::{Message, MessageType, ProtocolHandler};
 use crate::{QtcError, Result};
 use libp2p::{
+    futures::StreamExt,
     gossipsub, identify, kad, mdns, noise, ping, swarm::NetworkBehaviour, tcp, yamux, PeerId,
     Swarm, SwarmBuilder,
 };

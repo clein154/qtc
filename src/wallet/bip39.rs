@@ -1,8 +1,8 @@
 use crate::crypto::keys::{PrivateKey, PublicKey, KeyPair};
 use crate::crypto::hash::Hash256;
 use crate::{QtcError, Result};
-use bip39::{Mnemonic as Bip39Mnemonic, Language, MnemonicType, Seed as Bip39Seed};
-use bitcoin::util::bip32::{ExtendedPrivKey, ExtendedPubKey, DerivationPath, ChildNumber};
+use bip39::{Mnemonic as Bip39Mnemonic, Language};
+use bitcoin::bip32::{ExtendedPrivKey, ExtendedPubKey, DerivationPath, ChildNumber};
 use bitcoin::Network;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -27,7 +27,7 @@ pub struct HdWallet {
 }
 
 impl Mnemonic {
-    pub fn new(word_count: MnemonicType) -> Result<Self> {
+    pub fn new(word_count: u32) -> Result<Self> {
         // Generate random entropy for the mnemonic
         let entropy_size = match word_count {
             12 => 16,
@@ -67,7 +67,7 @@ impl Mnemonic {
     }
     
     pub fn to_seed(&self, passphrase: &str) -> Seed {
-        let seed = Bip39Seed::new(&self.inner, passphrase);
+        let seed = self.inner.to_seed(passphrase);
         Seed {
             bytes: seed.as_bytes().to_vec(),
         }
@@ -216,11 +216,11 @@ pub struct MnemonicUtils;
 
 impl MnemonicUtils {
     pub fn generate_12_word() -> Result<Mnemonic> {
-        Mnemonic::new(MnemonicType::Words12)
+        Mnemonic::new(12)
     }
     
     pub fn generate_24_word() -> Result<Mnemonic> {
-        Mnemonic::new(MnemonicType::Words24)
+        Mnemonic::new(24)
     }
     
     pub fn validate_word(word: &str) -> bool {
