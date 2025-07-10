@@ -1,8 +1,8 @@
-use crate::core::{Transaction, TxInput, TxOutput};
-use crate::crypto::hash::Hashable;
+use crate::core::{Transaction, TxInput};
+// use crate::crypto::hash::Hashable;
 use crate::core::transaction::OutPoint;
 use crate::core::Blockchain;
-use crate::crypto::keys::{PrivateKey, PublicKey, KeyPair};
+use crate::crypto::keys::{PrivateKey, KeyPair};
 use crate::crypto::hash::Hash256;
 use crate::storage::Database;
 use crate::wallet::bip39::{HdWallet, Mnemonic};

@@ -1,4 +1,4 @@
-use crate::core::{Block, BlockHeader, Transaction};
+use crate::core::{Block, Transaction};
 use crate::core::utxo::UtxoSet;
 use crate::storage::Database;
 use crate::consensus::validation::BlockValidator;
@@ -6,7 +6,7 @@ use crate::consensus::monetary::MonetaryPolicy;
 use crate::crypto::hash::{Hash256, Hashable};
 use crate::{QtcError, Result};
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
+// use chrono::{DateTime, Utc};
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone)]
@@ -36,45 +36,60 @@ impl Blockchain {
         
         // Try to load existing blockchain
         if let Ok(state) = db.get_chain_state() {
-            Ok(Self {
-                tip: state.as_ref().unwrap().tip,
-                height: state.as_ref().unwrap().height,
-                db,
-                utxo_set,
-                validator,
-                monetary_policy,
-            })
+            if let Some(chain_state) = state {
+                Ok(Self {
+                    tip: chain_state.tip,
+                    height: chain_state.height,
+                    db,
+                    utxo_set,
+                    validator,
+                    monetary_policy,
+                })
+            } else {
+                // No existing state, create genesis
+                Self::create_new_blockchain(db, utxo_set, validator, monetary_policy)
+            }
         } else {
             // Create genesis block
-            let genesis = Self::create_genesis_block();
-            let genesis_hash = genesis.hash();
-            
-            // Save genesis block
-            db.save_block(&genesis)?;
-            db.save_chain_state(&ChainState {
-                tip: genesis_hash,
-                height: 0,
-                total_work: 0,
-                difficulty: 4, // Initial difficulty
-                total_supply: monetary_policy.coinbase_reward(0),
-            })?;
-            
-            // Initialize UTXO set with genesis coinbase
-            let mut utxo_set_lock = utxo_set.write().unwrap();
-            utxo_set_lock.apply_block(&genesis)?;
-            drop(utxo_set_lock);
-            
-            Ok(Self {
-                tip: genesis_hash,
-                height: 0,
-                db,
-                utxo_set,
-                validator,
-                monetary_policy,
-            })
+            Self::create_new_blockchain(db, utxo_set, validator, monetary_policy)
         }
     }
     
+    fn create_new_blockchain(
+        db: Arc<Database>,
+        utxo_set: Arc<RwLock<UtxoSet>>,
+        validator: BlockValidator,
+        monetary_policy: MonetaryPolicy,
+    ) -> Result<Self> {
+        // Create genesis block
+        let genesis = Self::create_genesis_block();
+        let genesis_hash = genesis.hash();
+        
+        // Save genesis block
+        db.save_block(&genesis)?;
+        db.save_chain_state(&ChainState {
+            tip: genesis_hash,
+            height: 0,
+            total_work: 0,
+            difficulty: 4, // Initial difficulty
+            total_supply: monetary_policy.coinbase_reward(0),
+        })?;
+        
+        // Initialize UTXO set with genesis coinbase
+        let mut utxo_set_lock = utxo_set.write().unwrap();
+        utxo_set_lock.apply_block(&genesis)?;
+        drop(utxo_set_lock);
+        
+        Ok(Self {
+            tip: genesis_hash,
+            height: 0,
+            db,
+            utxo_set,
+            validator,
+            monetary_policy,
+        })
+    }
+
     pub fn create_genesis_block() -> Block {
         let genesis_message = "The Times 10/Jul/2025 Chancellor on brink of second bailout for banks - QTC Genesis";
         let coinbase_tx = Transaction::new_coinbase(

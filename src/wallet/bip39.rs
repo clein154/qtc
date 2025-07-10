@@ -1,7 +1,7 @@
-use crate::crypto::keys::{PrivateKey, PublicKey, KeyPair};
+use crate::crypto::keys::PrivateKey;
 use crate::crypto::hash::Hash256;
 use crate::{QtcError, Result};
-use bip39::{Mnemonic as Bip39Mnemonic, Language};
+use bip39::Mnemonic as Bip39Mnemonic;
 use bitcoin::bip32::{Xpriv, Xpub, DerivationPath, ChildNumber};
 use bitcoin::Network;
 use serde::{Deserialize, Serialize};

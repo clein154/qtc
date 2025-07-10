@@ -416,12 +416,16 @@ pub enum DbCommands {
 pub async fn run_cli(config: Config) -> Result<()> {
     let cli = Cli::parse();
     
-    // Initialize logging
-    if cli.debug {
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
+    // Initialize logging once
+    let _ = if cli.debug {
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).try_init()
     } else {
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    }
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).try_init()
+    };
+    
+    println!("🌟 Quantum Goldchain (QTC) Node Starting...");
+    println!("⛓️  Initiating Real-World Launch Protocol Mode");
+    println!("🧑‍💻 Jake online. Mission status: Hardcore Blockchain Implementation Mode ENGAGED");
     
     // Override config with CLI arguments
     let mut config = config;

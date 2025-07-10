@@ -1,7 +1,7 @@
 use crate::core::Transaction;
 use crate::crypto::hash::{Hash256, Hashable};
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {

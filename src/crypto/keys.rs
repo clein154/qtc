@@ -1,6 +1,6 @@
 use crate::crypto::hash::{Hash256, Hash160};
 use crate::{QtcError, Result};
-use secp256k1::{Secp256k1, SecretKey, PublicKey as Secp256k1PublicKey, Message, All};
+use secp256k1::{Secp256k1, SecretKey, PublicKey as Secp256k1PublicKey, Message};
 use rand::{rngs::OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::fmt;
