@@ -32,7 +32,7 @@ pub struct MiningResult {
 pub struct Miner {
     blockchain: Arc<RwLock<Blockchain>>,
     randomx_miner: Arc<RandomXMiner>,
-    difficulty_calc: DifficultyCalculator,
+    _difficulty_calc: DifficultyCalculator,
     mining_address: String,
     is_mining: Arc<AtomicBool>,
     stats: Arc<RwLock<MiningStats>>,
@@ -77,7 +77,7 @@ impl Miner {
         Ok(Self {
             blockchain,
             randomx_miner,
-            difficulty_calc,
+            _difficulty_calc: difficulty_calc,
             mining_address,
             is_mining: Arc::new(AtomicBool::new(false)),
             stats: Arc::new(RwLock::new(stats)),

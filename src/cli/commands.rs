@@ -521,7 +521,7 @@ async fn start_node(
     let blockchain = Arc::new(RwLock::new(Blockchain::new(db.clone())?));
     
     // Start P2P networking
-    let (mut p2p_node, mut p2p_events, p2p_commands) = P2PNode::new(
+    let (mut p2p_node, mut p2p_events, _p2p_commands) = P2PNode::new(
         blockchain.clone(),
         config.network.port,
         config.network.bootstrap_nodes.clone(),
@@ -651,7 +651,7 @@ async fn handle_p2p_event(
     Ok(())
 }
 
-async fn handle_network_command(config: Config, db: Arc<Database>, cmd: NetworkCommands) -> Result<()> {
+async fn handle_network_command(config: Config, _db: Arc<Database>, cmd: NetworkCommands) -> Result<()> {
     match cmd {
         NetworkCommands::Status => {
             println!("🌐 Network Status:");
@@ -814,7 +814,7 @@ async fn handle_api_command(config: Config, _db: Arc<Database>, cmd: ApiCommands
 async fn handle_db_command(db: Arc<Database>, cmd: DbCommands) -> Result<()> {
     match cmd {
         DbCommands::Stats => {
-            let mut stats = db.get_database_stats()?;
+            let stats = db.get_database_stats()?;
             stats.total_size();
             
             println!("📊 Database Statistics:");

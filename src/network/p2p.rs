@@ -146,7 +146,7 @@ pub struct NetworkStats {
 pub struct P2PNode {
     swarm: Swarm<QtcBehaviour>,
     blockchain: Arc<RwLock<Blockchain>>,
-    protocol_handler: ProtocolHandler,
+    _protocol_handler: ProtocolHandler,
     peers: HashMap<PeerId, PeerInfo>,
     stats: NetworkStats,
     start_time: Instant,
@@ -177,7 +177,7 @@ impl P2PNode {
         log::info!("🌐 Starting P2P node with peer ID: {}", local_peer_id);
         
         // Create transport - updated for libp2p 0.53
-        let transport = tcp::tokio::Transport::new(tcp::Config::default().nodelay(true));
+        let _transport = tcp::tokio::Transport::new(tcp::Config::default().nodelay(true));
         
         // Configure Gossipsub
         let gossipsub_config = gossipsub::ConfigBuilder::default()
@@ -256,7 +256,7 @@ impl P2PNode {
         let node = Self {
             swarm,
             blockchain,
-            protocol_handler,
+            _protocol_handler: protocol_handler,
             peers: HashMap::new(),
             stats: NetworkStats {
                 peer_count: 0,
@@ -516,7 +516,7 @@ impl P2PNode {
         log::info!("✂️ Disconnecting from peer: {}", peer_id);
         
         // Disconnect from the peer
-        self.swarm.disconnect_peer_id(peer_id);
+        let _ = self.swarm.disconnect_peer_id(peer_id);
         // Note: disconnect_peer_id returns () in libp2p 0.53
         
         Ok(())

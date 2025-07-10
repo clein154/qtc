@@ -131,12 +131,12 @@ impl UtxoSet {
         
         // Get UTXOs from database
         let db_utxos = self.db.get_utxos_for_address(address)?;
-        for (outpoint, utxo) in db_utxos {
+        for (_outpoint, utxo) in db_utxos {
             utxos.push((utxo.txid, utxo.vout, utxo.value));
         }
         
         // Add UTXOs from cache
-        for (outpoint, utxo) in &self.cache {
+        for (_outpoint, utxo) in &self.cache {
             if self.script_matches_address(&utxo.script_pubkey, address) {
                 utxos.push((utxo.txid, utxo.vout, utxo.value));
             }

@@ -362,7 +362,7 @@ impl MiningCli {
         
         // Calculate target hash representation
         let calc = DifficultyCalculator::new();
-        let target = calc.difficulty_to_target(difficulty);
+        let _target = calc.difficulty_to_target(difficulty);
         let leading_zeros = difficulty / 4;
         
         println!("Required leading zero bits: {}", difficulty);

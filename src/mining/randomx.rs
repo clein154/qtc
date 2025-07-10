@@ -217,7 +217,7 @@ impl RandomXDataset {
 
 pub struct RandomXMiner {
     vm: RandomXVM,
-    cache: Arc<RandomXCache>,
+    _cache: Arc<RandomXCache>,
     threads: usize,
     fast_mode: bool,
 }
@@ -249,7 +249,7 @@ impl RandomXMiner {
         
         Ok(Self {
             vm,
-            cache,
+            _cache: cache,
             threads: thread_count,
             fast_mode,
         })

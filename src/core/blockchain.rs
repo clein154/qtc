@@ -91,7 +91,7 @@ impl Blockchain {
         )
     }
     
-    pub fn add_block(&mut self, mut block: Block) -> Result<()> {
+    pub fn add_block(&mut self, block: Block) -> Result<()> {
         // Validate block
         self.validator.validate_block(&block, self)?;
         

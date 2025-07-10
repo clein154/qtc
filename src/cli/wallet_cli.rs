@@ -221,7 +221,7 @@ impl WalletCli {
                     let wallet_type = match wallet.info.wallet_type {
                         WalletType::Simple => "Simple",
                         WalletType::HD => "HD (BIP39)",
-                        WalletType::Multisig { required, total } => {
+                        WalletType::Multisig { required: _, total: _ } => {
                             // Format as string to avoid borrowing issues
                             return Ok(());
                         }
