@@ -2,8 +2,15 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::env;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum NetworkType {
+    Mainnet,
+    Testnet,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    pub network_type: NetworkType,
     pub network: NetworkConfig,
     pub mining: MiningConfig,
     pub storage: StorageConfig,
@@ -57,6 +64,7 @@ impl Default for Config {
         let data_dir = PathBuf::from(home_dir).join(".qtc");
         
         Self {
+            network_type: NetworkType::Mainnet,
             network: NetworkConfig {
                 port: 8333,
                 max_peers: 50,
@@ -67,7 +75,7 @@ impl Default for Config {
                 threads: num_cpus::get(),
                 target_block_time: 450, // 7.5 minutes
                 difficulty_adjustment_blocks: 10,
-                initial_difficulty: 4,
+                initial_difficulty: 20, // Higher initial difficulty to prevent millisecond blocks
             },
             storage: StorageConfig {
                 data_dir,
@@ -92,6 +100,63 @@ impl Default for Config {
 }
 
 impl Config {
+    pub fn testnet() -> Self {
+        let home_dir = env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        let data_dir = PathBuf::from(home_dir).join(".qtc-testnet");
+        
+        Self {
+            network_type: NetworkType::Testnet,
+            network: NetworkConfig {
+                port: 18333, // Different port for testnet
+                max_peers: 20,
+                bootstrap_nodes: vec![],
+                enable_mdns: true,
+            },
+            mining: MiningConfig {
+                threads: num_cpus::get(),
+                target_block_time: 450, // Same target time
+                difficulty_adjustment_blocks: 10,
+                initial_difficulty: 16, // Lower difficulty for testing
+            },
+            storage: StorageConfig {
+                data_dir,
+                max_db_size: 256 * 1024 * 1024, // 256MB for testnet
+            },
+            api: ApiConfig {
+                enable_rest: true,
+                rest_port: 18080, // Different API port
+                enable_websocket: true,
+                websocket_port: 18081,
+                cors_origins: vec!["*".to_string()],
+            },
+            consensus: ConsensusConfig {
+                max_block_size: 1024 * 1024, // 1MB
+                min_transaction_fee: 100, // Lower fee for testing
+                coinbase_reward: 2710000000, // Same reward structure
+                halving_interval: 262800,
+                max_supply: 1999999900000000,
+            },
+        }
+    }
+    
+    pub fn is_testnet(&self) -> bool {
+        self.network_type == NetworkType::Testnet
+    }
+    
+    pub fn get_genesis_message(&self) -> String {
+        match self.network_type {
+            NetworkType::Mainnet => "The Times 10/Jul/2025 Chancellor on brink of second bailout for banks - QTC Genesis".to_string(),
+            NetworkType::Testnet => "QTC Testnet Genesis - Jul 2025 - Testing blockchain implementation".to_string(),
+        }
+    }
+    
+    pub fn get_genesis_address(&self) -> String {
+        match self.network_type {
+            NetworkType::Mainnet => "qtc1qw508d6qejxtdg4y5r3zarvary0c5xw7kxdz6v9".to_string(),
+            NetworkType::Testnet => "qtctestnet1qw508d6qejxtdg4y5r3zarvary0c5xw7k2pz4m5".to_string(),
+        }
+    }
+
     pub fn load() -> anyhow::Result<Self> {
         let config_path = Self::config_path();
         

@@ -71,8 +71,8 @@ impl Blockchain {
             tip: genesis_hash,
             height: 0,
             total_work: 0,
-            difficulty: 4, // Initial difficulty
-            total_supply: monetary_policy.coinbase_reward(0),
+            difficulty: 20, // Initial difficulty - higher for realistic mining times
+            total_supply: 0, // Genesis block has no reward
         })?;
         
         // Initialize UTXO set with genesis coinbase
@@ -92,16 +92,17 @@ impl Blockchain {
 
     pub fn create_genesis_block() -> Block {
         let genesis_message = "The Times 10/Jul/2025 Chancellor on brink of second bailout for banks - QTC Genesis";
+        // Genesis block has NO REWARD - this is the pre-mine prevention
         let coinbase_tx = Transaction::new_coinbase(
             "qtc1qw508d6qejxtdg4y5r3zarvary0c5xw7kxdz6v9".to_string(), // Genesis address
-            2710000000, // 27.1 QTC in satoshis
+            0, // NO REWARD for genesis block (0 QTC)
             genesis_message.to_string(),
         );
         
         Block::new(
             Hash256::zero(), // Previous hash (genesis)
             vec![coinbase_tx],
-            4, // Initial difficulty
+            20, // Initial difficulty - higher for realistic mining times
             0, // Height
         )
     }
@@ -173,7 +174,7 @@ impl Blockchain {
     
     pub fn calculate_next_difficulty(&self, height: u64) -> Result<u32> {
         if height < 10 {
-            return Ok(4); // Initial difficulty
+            return Ok(20); // Initial difficulty - higher for realistic mining times
         }
         
         // Get last 10 blocks for difficulty adjustment
@@ -204,7 +205,7 @@ impl Blockchain {
         let new_difficulty = new_difficulty.max(current_difficulty.saturating_sub(max_change))
                                         .min(current_difficulty.saturating_add(max_change));
         
-        Ok(new_difficulty.max(1)) // Minimum difficulty of 1
+        Ok(new_difficulty.max(16)) // Minimum difficulty to prevent millisecond blocks
     }
     
     pub fn get_current_difficulty(&self) -> Result<u32> {
