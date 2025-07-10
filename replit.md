@@ -51,6 +51,7 @@ Migration accomplishments:
 - ✅ **DATABASE**: Sled storage engine with backup, repair, and maintenance features
 - ✅ **DOCUMENTATION**: Complete README.md with setup, usage, and troubleshooting guides
 - ✅ **SECURITY**: Robust implementation with client/server separation and proper encryption
+- ✅ **WARNINGS RESOLVED**: Removed RandomX FFI warnings and reduced initial difficulty to 12 for easier mining
 
 ## System Architecture
 

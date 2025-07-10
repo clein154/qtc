@@ -75,7 +75,7 @@ impl Default for Config {
                 threads: num_cpus::get(),
                 target_block_time: 450, // 7.5 minutes
                 difficulty_adjustment_blocks: 10,
-                initial_difficulty: 20, // Higher initial difficulty to prevent millisecond blocks
+                initial_difficulty: 12, // Reduced initial difficulty for easier mining
             },
             storage: StorageConfig {
                 data_dir,
