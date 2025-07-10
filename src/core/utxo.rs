@@ -1,4 +1,5 @@
-use crate::core::{Block, Transaction, OutPoint};
+use crate::core::{Block, Transaction};
+use crate::core::transaction::OutPoint;
 use crate::storage::Database;
 use crate::crypto::hash::{Hash256, Hashable};
 use crate::{QtcError, Result};

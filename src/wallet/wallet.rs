@@ -1,4 +1,5 @@
-use crate::core::{Transaction, TxInput, TxOutput, OutPoint};
+use crate::core::{Transaction, TxInput, TxOutput};
+use crate::core::transaction::OutPoint;
 use crate::core::Blockchain;
 use crate::crypto::keys::{PrivateKey, PublicKey, KeyPair};
 use crate::crypto::hash::Hash256;

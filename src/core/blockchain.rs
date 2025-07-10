@@ -19,7 +19,7 @@ pub struct Blockchain {
     monetary_policy: MonetaryPolicy,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ChainState {
     pub tip: Hash256,
     pub height: u64,

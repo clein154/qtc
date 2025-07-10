@@ -168,7 +168,7 @@ impl P2PNode {
         ));
         
         // Configure Ping
-        let ping = ping::Behaviour::new(ping::Config::new().with_keep_alive(true));
+        let ping = ping::Behaviour::new(ping::Config::new());
         
         // Create behaviour
         let behaviour = QtcBehaviour {
@@ -179,8 +179,11 @@ impl P2PNode {
             ping,
         };
         
-        // Create swarm
-        let mut swarm = SwarmBuilder::with_tokio_executor(transport, behaviour, local_peer_id)
+        // Create swarm with simplified configuration for compatibility
+        let mut swarm = SwarmBuilder::with_existing_identity(local_key)
+            .with_tokio_executor()
+            .with_tcp(tcp::Config::default(), noise::Config::new, yamux::Config::default).unwrap()
+            .with_behaviour(|_| behaviour).unwrap()
             .build();
         
         // Listen on the specified port
@@ -222,8 +225,10 @@ impl P2PNode {
         
         loop {
             tokio::select! {
-                event = self.swarm.select_next_some() => {
-                    self.handle_swarm_event(event).await?;
+                event = self.swarm.next() => {
+                    if let Some(event) = event {
+                        self.handle_swarm_event(event).await?;
+                    }
                 }
                 command = self.command_receiver.recv() => {
                     if let Some(cmd) = command {

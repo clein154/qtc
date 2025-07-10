@@ -1,4 +1,6 @@
-use crate::core::{Block, Transaction, ChainState, UtxoEntry, OutPoint};
+use crate::core::{Block, Transaction, UtxoEntry};
+use crate::core::blockchain::ChainState;
+use crate::core::transaction::OutPoint;
 use crate::crypto::hash::{Hash256, Hashable};
 use crate::wallet::{Wallet, WalletInfo};
 use crate::{QtcError, Result};
@@ -426,6 +428,8 @@ impl Database {
         
         Ok(stats)
     }
+    
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

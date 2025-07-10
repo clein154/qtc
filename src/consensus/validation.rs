@@ -3,6 +3,7 @@ use crate::crypto::hash::{Hash256, Hashable};
 use crate::{QtcError, Result};
 use std::collections::HashSet;
 
+#[derive(Debug, Clone)]
 pub struct BlockValidator {
     max_block_size: usize,
     max_transaction_size: usize,

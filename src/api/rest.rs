@@ -1,4 +1,5 @@
 use crate::core::{Blockchain, Block, Transaction};
+use crate::crypto::hash::Hashable;
 use crate::crypto::hash::Hash256;
 use crate::storage::Database;
 use crate::config::ApiConfig;
