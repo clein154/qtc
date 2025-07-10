@@ -4,6 +4,7 @@ use crate::core::transaction::OutPoint;
 use crate::core::Blockchain;
 use crate::crypto::keys::{PrivateKey, KeyPair};
 use crate::crypto::hash::Hash256;
+use crate::crypto::pqc::{PqcKeyPair};
 use crate::storage::Database;
 use crate::wallet::bip39::{HdWallet, Mnemonic};
 use crate::{QtcError, Result};
@@ -28,6 +29,8 @@ pub enum WalletType {
     HD,
     Multisig { required: u32, total: u32 },
     WatchOnly,
+    PostQuantum,
+    HybridClassicPqc,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +41,23 @@ pub struct WalletAddress {
     pub derivation_path: Option<String>,
     pub is_change: bool,
     pub used: bool,
+    pub address_type: AddressType,
+    pub pqc_data: Option<PqcAddressData>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum AddressType {
+    Classic,
+    PostQuantum,
+    Hybrid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PqcAddressData {
+    pub signing_private_key: Option<Vec<u8>>,
+    pub encryption_private_key: Option<Vec<u8>>,
+    pub signing_public_key: Vec<u8>,
+    pub encryption_public_key: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -62,6 +82,8 @@ impl Wallet {
             derivation_path: None,
             is_change: false,
             used: false,
+            address_type: AddressType::Classic,
+            pqc_data: None,
         });
         
         let info = WalletInfo {
@@ -133,6 +155,8 @@ impl Wallet {
                 derivation_path: Some(format!("m/44'/0'/0'/0/{}", index)),
                 is_change: false,
                 used: false,
+                address_type: AddressType::Classic,
+                pqc_data: None,
             };
             
             self.addresses.insert(address.clone(), wallet_address);
@@ -191,6 +215,8 @@ impl Wallet {
                 derivation_path: Some(format!("m/44'/0'/0'/1/{}", index)),
                 is_change: true,
                 used: false,
+                address_type: AddressType::Classic,
+                pqc_data: None,
             };
             
             self.addresses.insert(address.clone(), wallet_address);
@@ -288,6 +314,8 @@ impl Wallet {
             derivation_path: None,
             is_change: false,
             used: false,
+            address_type: AddressType::Classic,
+            pqc_data: None,
         };
         
         self.addresses.insert(address.clone(), wallet_address);
@@ -301,6 +329,156 @@ impl Wallet {
         // This would need to scan the blockchain for transactions involving our addresses
         // Simplified implementation for now
         Ok(Vec::new())
+    }
+
+    /// Create a new Post-Quantum Cryptography wallet
+    pub fn new_pqc(name: String, db: Arc<Database>, blockchain: Arc<std::sync::RwLock<Blockchain>>) -> Result<Self> {
+        let pqc_keypair = PqcKeyPair::new()?;
+        let pqc_address = pqc_keypair.address();
+        
+        let pqc_data = PqcAddressData {
+            signing_private_key: Some(pqc_keypair.signing_private_key_bytes()),
+            encryption_private_key: Some(pqc_keypair.encryption_private_key_bytes()),
+            signing_public_key: pqc_address.signing_public_key.clone(),
+            encryption_public_key: pqc_address.encryption_public_key.clone(),
+        };
+
+        let mut addresses = HashMap::new();
+        addresses.insert(pqc_address.address.clone(), WalletAddress {
+            address: pqc_address.address.clone(),
+            private_key: None, // PQC private keys stored separately
+            public_key: pqc_address.signing_public_key.clone(),
+            derivation_path: None,
+            is_change: false,
+            used: false,
+            address_type: AddressType::PostQuantum,
+            pqc_data: Some(pqc_data),
+        });
+        
+        let info = WalletInfo {
+            name,
+            wallet_type: WalletType::PostQuantum,
+            created_at: chrono::Utc::now().timestamp() as u64,
+            last_used: 0,
+            is_encrypted: false,
+            balance: 0,
+            address_count: 1,
+        };
+        
+        Ok(Self {
+            info,
+            addresses,
+            hd_wallet: None,
+            db,
+            blockchain,
+        })
+    }
+
+
+
+    /// Generate a new PQC address for HD wallets
+    pub fn generate_pqc_address(&mut self) -> Result<String> {
+        let pqc_keypair = PqcKeyPair::new()?;
+        let pqc_address = pqc_keypair.address();
+        
+        let pqc_data = PqcAddressData {
+            signing_private_key: Some(pqc_keypair.signing_private_key_bytes()),
+            encryption_private_key: Some(pqc_keypair.encryption_private_key_bytes()),
+            signing_public_key: pqc_address.signing_public_key.clone(),
+            encryption_public_key: pqc_address.encryption_public_key.clone(),
+        };
+
+        let wallet_address = WalletAddress {
+            address: pqc_address.address.clone(),
+            private_key: None, // PQC private keys stored separately
+            public_key: pqc_address.signing_public_key.clone(),
+            derivation_path: None,
+            is_change: false,
+            used: false,
+            address_type: AddressType::PostQuantum,
+            pqc_data: Some(pqc_data),
+        };
+        
+        self.addresses.insert(pqc_address.address.clone(), wallet_address);
+        self.info.address_count += 1;
+        self.save()?;
+        
+        Ok(pqc_address.address)
+    }
+
+    /// Get addresses by type (Classic, PostQuantum, or Hybrid)
+    pub fn get_addresses_by_type(&self, address_type: AddressType) -> Vec<String> {
+        self.addresses.values()
+            .filter(|addr| addr.address_type == address_type)
+            .map(|addr| addr.address.clone())
+            .collect()
+    }
+
+    /// Check if wallet has post-quantum addresses
+    pub fn has_pqc_addresses(&self) -> bool {
+        self.addresses.values().any(|addr| matches!(addr.address_type, AddressType::PostQuantum))
+    }
+
+    /// Create a new hybrid wallet (both classic and PQC)
+    pub fn new_hybrid(name: String, db: Arc<Database>, blockchain: Arc<std::sync::RwLock<Blockchain>>) -> Result<Self> {
+        let mut addresses = HashMap::new();
+        
+        // Create classic keypair
+        let classic_keypair = KeyPair::new()?;
+        let classic_address = classic_keypair.address();
+        
+        // Add classic address
+        addresses.insert(classic_address.clone(), WalletAddress {
+            address: classic_address.clone(),
+            private_key: Some(classic_keypair.private_key.to_bytes().to_vec()),
+            public_key: classic_keypair.public_key.to_bytes().to_vec(),
+            derivation_path: None,
+            is_change: false,
+            used: false,
+            address_type: AddressType::Classic,
+            pqc_data: None,
+        });
+        
+        // Create PQC keypair
+        let pqc_keypair = PqcKeyPair::new()?;
+        let pqc_address = pqc_keypair.address();
+        
+        let pqc_data = PqcAddressData {
+            signing_private_key: Some(pqc_keypair.signing_private_key_bytes()),
+            encryption_private_key: Some(pqc_keypair.encryption_private_key_bytes()),
+            signing_public_key: pqc_address.signing_public_key.clone(),
+            encryption_public_key: pqc_address.encryption_public_key.clone(),
+        };
+
+        // Add PQC address
+        addresses.insert(pqc_address.address.clone(), WalletAddress {
+            address: pqc_address.address.clone(),
+            private_key: None, // PQC private keys stored separately
+            public_key: pqc_address.signing_public_key.clone(),
+            derivation_path: None,
+            is_change: false,
+            used: false,
+            address_type: AddressType::PostQuantum,
+            pqc_data: Some(pqc_data),
+        });
+        
+        let info = WalletInfo {
+            name,
+            wallet_type: WalletType::HybridClassicPqc,
+            created_at: chrono::Utc::now().timestamp() as u64,
+            last_used: 0,
+            is_encrypted: false,
+            balance: 0,
+            address_count: 2,
+        };
+        
+        Ok(Self {
+            info,
+            addresses,
+            hd_wallet: None,
+            db,
+            blockchain,
+        })
     }
 }
 

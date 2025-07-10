@@ -21,7 +21,7 @@ args = "qtc_test"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Build and Test"
+args = "PQC Test"
 
 [[workflows.workflow]]
 name = "QTC Blockchain"
@@ -40,12 +40,12 @@ task = "shell.exec"
 args = "cargo run -- --help"
 
 [[workflows.workflow]]
-name = "Build and Test"
+name = "PQC Test"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cargo build --bin qtcd && echo \"Build complete!\" && ./target/debug/qtcd --data-dir qtc-test-data wallet new-address test-wallet"
+args = "cargo build --bin qtcd && echo \"Build complete!\" && ./target/debug/qtcd wallet create test-pqc-wallet --wallet-type pqc"
 
 [[ports]]
 localPort = 8000

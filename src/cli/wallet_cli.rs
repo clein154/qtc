@@ -31,8 +31,8 @@ impl WalletCli {
     
     pub async fn handle_command(&mut self, command: WalletCommands) -> Result<()> {
         match command {
-            WalletCommands::Create { name, hd, words24, passphrase } => {
-                self.create_wallet(name, hd, words24, passphrase).await
+            WalletCommands::Create { name, hd, words24, passphrase, wallet_type } => {
+                self.create_wallet(name, hd, words24, passphrase, wallet_type).await
             }
             
             WalletCommands::Import { name, mnemonic, passphrase } => {
@@ -85,7 +85,7 @@ impl WalletCli {
         }
     }
     
-    async fn create_wallet(&self, name: String, hd: bool, words24: bool, passphrase: Option<String>) -> Result<()> {
+    async fn create_wallet(&self, name: String, hd: bool, words24: bool, passphrase: Option<String>, wallet_type: Option<String>) -> Result<()> {
         println!("{} {} Creating new wallet: {}", WALLET, style("QTC Wallet").bold().cyan(), style(&name).bold());
         
         // Check if wallet already exists
@@ -131,13 +131,49 @@ impl WalletCli {
             println!("Addresses generated: {}", wallet.info.address_count);
             
         } else {
-            // Create simple wallet
-            let wallet = Wallet::new_simple(name.clone(), self.db.clone(), self.blockchain.clone())?;
-            let address = wallet.get_addresses()[0].clone();
-            wallet.save()?;
+            // Create wallet based on type
+            let wtype = if let Some(wtype) = wallet_type {
+                match wtype.as_str() {
+                    "simple" => WalletType::Simple,
+                    "pqc" => WalletType::PostQuantum,
+                    "hybrid" => WalletType::HybridClassicPqc,
+                    _ => WalletType::Simple,
+                }
+            } else {
+                WalletType::Simple
+            };
             
-            println!("{} Simple wallet '{}' created successfully!", CHECK, name);
-            println!("Address: {}", style(address).bold().green());
+            match wtype {
+                WalletType::Simple => {
+                    let wallet = Wallet::new_simple(name.clone(), self.db.clone(), self.blockchain.clone())?;
+                    let address = wallet.get_addresses()[0].clone();
+                    wallet.save()?;
+                    println!("{} Simple wallet '{}' created successfully!", CHECK, name);
+                    println!("Address: {}", style(address).bold().green());
+                }
+                WalletType::PostQuantum => {
+                    let wallet = Wallet::new_pqc(name.clone(), self.db.clone(), self.blockchain.clone())?;
+                    let address = wallet.get_addresses()[0].clone();
+                    wallet.save()?;
+                    println!("{} Post-Quantum wallet '{}' created successfully!", CHECK, name);
+                    println!("PQC Address: {}", style(address).bold().green());
+                }
+                WalletType::HybridClassicPqc => {
+                    let wallet = Wallet::new_hybrid(name.clone(), self.db.clone(), self.blockchain.clone())?;
+                    let addresses = wallet.get_addresses();
+                    wallet.save()?;
+                    println!("{} Hybrid (Classic+PQC) wallet '{}' created successfully!", CHECK, name);
+                    println!("Classic Address: {}", style(&addresses[0]).bold().green());
+                    println!("PQC Address: {}", style(&addresses[1]).bold().green());
+                }
+                _ => {
+                    let wallet = Wallet::new_simple(name.clone(), self.db.clone(), self.blockchain.clone())?;
+                    let address = wallet.get_addresses()[0].clone();
+                    wallet.save()?;
+                    println!("{} Simple wallet '{}' created successfully!", CHECK, name);
+                    println!("Address: {}", style(address).bold().green());
+                }
+            }
         }
         
         Ok(())
@@ -226,6 +262,8 @@ impl WalletCli {
                             return Ok(());
                         }
                         WalletType::WatchOnly => "Watch-Only",
+                        WalletType::PostQuantum => "Post-Quantum",
+                        WalletType::HybridClassicPqc => "Hybrid PQC+Classic",
                     };
                     
                     println!("  {} {} ({}) - Balance: {:.8} QTC", 

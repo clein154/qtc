@@ -103,6 +103,8 @@ pub enum WalletCommands {
         words24: bool,
         #[arg(long, help = "Passphrase for HD wallet")]
         passphrase: Option<String>,
+        #[arg(long, help = "Wallet type: simple, pqc, hybrid")]
+        wallet_type: Option<String>,
     },
     
     /// Import wallet from mnemonic phrase

@@ -20,6 +20,8 @@ QTC is a post-Bitcoin era blockchain: **100% decentralized**, zero governance, n
 
 ### Wallet Technology
 - **🔑 BIP39 HD Wallets** - Industry-standard mnemonic phrase backup
+- **🛡️ Post-Quantum Cryptography** - Quantum-resistant addresses using Dilithium3 + Kyber768
+- **🔄 Hybrid Wallets** - Dual classic + quantum-resistant addresses for future-proofing
 - **🤝 Multi-Signature Support** - 2-of-3, 3-of-5, custom m-of-n configurations
 - **🔐 Hardware Wallet Ready** - Compatible with standard derivation paths
 - **📱 Cross-Platform** - Linux, Windows, macOS support
@@ -120,6 +122,49 @@ cargo build --release
 # Create multisig wallet (2-of-3, 3-of-5, etc.)
 ./target/release/qtcd wallet multisig create my-multisig
 ```
+
+#### 2.1. **Post-Quantum Cryptography (PQC) Wallets**
+
+QTC now supports quantum-resistant addresses that will remain secure even against future quantum computer attacks:
+
+```bash
+# Create a post-quantum wallet (quantum-resistant)
+./target/release/qtcd wallet create my-pqc-wallet --wallet-type pqc
+
+# Example output:
+# ✅ Post-Quantum wallet 'my-pqc-wallet' created successfully!
+# PQC Address: qtc-pqc37dQV3R9rKjvVTWn2bWSHETMoZdgpAd5hU
+
+# Create a hybrid wallet (both classic and quantum-resistant addresses)
+./target/release/qtcd wallet create my-hybrid-wallet --wallet-type hybrid
+
+# Example output:
+# ✅ Hybrid (Classic+PQC) wallet 'my-hybrid-wallet' created successfully!
+# Classic Address: qtc1KCHsbqN5a6EuJCMWTFxyjHmT1mEL6ZCJX
+# PQC Address: qtc-pqc338EmnGtijCnHu7NFQhnmRFZHr79xu1FJY
+
+# Create a simple/classic wallet (default)
+./target/release/qtcd wallet create my-classic-wallet --wallet-type simple
+
+# List all wallets to see different types
+./target/release/qtcd wallet list
+# Example output:
+# 💼 QTC Wallet Available Wallets:
+#   🪙 my-hybrid-wallet (Hybrid PQC+Classic) - Balance: 0.00000000 QTC
+#   🪙 my-pqc-wallet (Post-Quantum) - Balance: 0.00000000 QTC
+#   🪙 my-classic-wallet (Simple) - Balance: 0.00000000 QTC
+```
+
+**📋 PQC Wallet Types:**
+- **Simple**: Classic Bitcoin-style addresses (`qtc1...`) using secp256k1 ECDSA
+- **PQC**: Pure post-quantum addresses (`qtc-pqc...`) using Dilithium3 + Kyber768
+- **Hybrid**: Both classic and quantum-resistant addresses for maximum flexibility
+
+**🛡️ Quantum Security Features:**
+- **Dilithium3**: NIST-standardized quantum-resistant digital signatures
+- **Kyber768**: NIST-standardized quantum-resistant key encapsulation
+- **Future-Proof**: Addresses remain secure against quantum computer attacks
+- **Backwards Compatible**: All wallet types work with existing QTC infrastructure
 
 #### 3. **Mining Setup & Operation**
 
