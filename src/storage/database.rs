@@ -163,6 +163,17 @@ impl Database {
         utxo_tree.insert(&key, data)
             .map_err(|e| QtcError::Storage(format!("Failed to save UTXO: {}", e)))?;
         
+        // INDEX BY ADDRESS FOR BLOCKCHAIN EXPLORER
+        let address_tree = self.get_tree(TREE_ADDRESSES)?;
+        let address_key = format!("utxo_{}_{}", utxo.address, self.outpoint_to_string(outpoint));
+        address_tree.insert(address_key.as_bytes(), b"1")
+            .map_err(|e| QtcError::Storage(format!("Failed to index UTXO by address: {}", e)))?;
+        
+        // TRACK ADDRESS IN GLOBAL ADDRESS LIST
+        let addr_list_key = format!("address_{}", utxo.address);
+        address_tree.insert(addr_list_key.as_bytes(), b"1")
+            .map_err(|e| QtcError::Storage(format!("Failed to track address: {}", e)))?;
+        
         log::debug!("💾 Saved UTXO {}:{}", hex::encode(outpoint.txid.as_bytes()), outpoint.vout);
         Ok(())
     }
@@ -408,6 +419,10 @@ impl Database {
         key
     }
     
+    fn outpoint_to_string(&self, outpoint: &OutPoint) -> String {
+        format!("{}:{}", hex::encode(outpoint.txid.as_bytes()), outpoint.vout)
+    }
+    
     fn key_to_outpoint(&self, key: &[u8]) -> Result<OutPoint> {
         if key.len() != 36 {
             return Err(QtcError::Storage("Invalid outpoint key length".to_string()));
@@ -477,6 +492,106 @@ impl Database {
         }
         
         Ok(stats)
+    }
+    
+    // BLOCKCHAIN EXPLORER METHODS
+    pub fn get_all_addresses(&self) -> Result<Vec<String>> {
+        let address_tree = self.get_tree(TREE_ADDRESSES)?;
+        let mut addresses = Vec::new();
+        
+        for item in address_tree.iter() {
+            match item {
+                Ok((key, _)) => {
+                    if let Ok(key_str) = String::from_utf8(key.to_vec()) {
+                        if key_str.starts_with("address_") {
+                            let address = key_str.strip_prefix("address_").unwrap();
+                            addresses.push(address.to_string());
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Error iterating addresses: {}", e);
+                    break;
+                }
+            }
+        }
+        
+        Ok(addresses)
+    }
+    
+    pub fn get_address_transactions(&self, address: &str, limit: usize) -> Result<Vec<(Hash256, Transaction, u64)>> {
+        let mut transactions = Vec::new();
+        
+        // Get all blocks to find transactions involving this address
+        let blocks_tree = self.get_tree(TREE_BLOCKS)?;
+        let mut block_data = Vec::new();
+        
+        for item in blocks_tree.iter() {
+            match item {
+                Ok((_, value)) => {
+                    if let Ok(block) = bincode::deserialize::<Block>(&value) {
+                        block_data.push(block);
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Error iterating blocks: {}", e);
+                    break;
+                }
+            }
+        }
+        
+        // Sort blocks by height (newest first)
+        block_data.sort_by(|a, b| b.header.height.cmp(&a.header.height));
+        
+        // Search for transactions involving the address
+        for block in block_data.iter().take(1000) { // Limit to recent blocks for performance
+            for tx in &block.transactions {
+                let mut involves_address = false;
+                
+                // Check if address is in outputs
+                for output in &tx.outputs {
+                    if let Some(output_address) = Self::script_to_address(&output.script_pubkey) {
+                        if output_address == address {
+                            involves_address = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Check if address is in inputs (by looking up UTXOs)
+                if !involves_address && !tx.is_coinbase() {
+                    for input in &tx.inputs {
+                        if let Ok(Some(utxo)) = self.get_utxo(&input.previous_output) {
+                            if utxo.address == address {
+                                involves_address = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if involves_address {
+                    transactions.push((tx.hash(), tx.clone(), block.header.height));
+                    if transactions.len() >= limit {
+                        return Ok(transactions);
+                    }
+                }
+            }
+        }
+        
+        Ok(transactions)
+    }
+    
+    // Helper function to extract address from script
+    fn script_to_address(script_pubkey: &[u8]) -> Option<String> {
+        // Simplified address extraction - in production, this would be more comprehensive
+        if script_pubkey.len() >= 20 {
+            // Try to extract address from P2PKH or P2SH script
+            let address_bytes = &script_pubkey[script_pubkey.len() - 20..];
+            Some(format!("qtc{}", hex::encode(address_bytes)))
+        } else {
+            None
+        }
     }
     
 

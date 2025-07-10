@@ -144,6 +144,7 @@ impl BlockValidator {
     fn validate_block_transactions(&self, block: &Block, blockchain: &Blockchain) -> Result<()> {
         let mut seen_txids = HashSet::new();
         let mut total_fees = 0u64;
+        let mut spent_outpoints = HashSet::new(); // DOUBLE SPENDING PREVENTION
         
         // Skip coinbase transaction (index 0) for most validations
         for (i, tx) in block.transactions.iter().enumerate() {
@@ -153,6 +154,21 @@ impl BlockValidator {
                 return Err(QtcError::Consensus(format!("Duplicate transaction in block: {}", hex::encode(txid.as_bytes()))));
             }
             seen_txids.insert(txid);
+            
+            // CRITICAL: Check for double spending within the block
+            if i > 0 { // Skip coinbase
+                for input in &tx.inputs {
+                    let outpoint = &input.previous_output;
+                    if spent_outpoints.contains(outpoint) {
+                        return Err(QtcError::Consensus(format!(
+                            "Double spending detected: {}:{} spent multiple times in block",
+                            hex::encode(outpoint.txid.as_bytes()),
+                            outpoint.vout
+                        )));
+                    }
+                    spent_outpoints.insert(outpoint.clone());
+                }
+            }
             
             // Validate individual transaction
             if i == 0 {

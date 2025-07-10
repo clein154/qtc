@@ -9,6 +9,16 @@ use serde::{Deserialize, Serialize};
 // use chrono::{DateTime, Utc};
 use std::sync::{Arc, RwLock};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlockchainStats {
+    pub height: u64,
+    pub difficulty: u32,
+    pub total_supply: u64,
+    pub total_addresses: usize,
+    pub avg_block_time: u64,
+    pub network_hashrate: f64,
+}
+
 #[derive(Debug, Clone)]
 pub struct Blockchain {
     pub tip: Hash256,
@@ -168,44 +178,116 @@ impl Blockchain {
         utxo_set.get_utxos(address)
     }
     
+    /// Get all addresses that have ever been used (for blockchain explorer)
+    pub fn get_all_addresses(&self) -> Result<Vec<String>> {
+        self.db.get_all_addresses()
+    }
+    
+    /// Get transaction history for an address (for blockchain explorer)
+    pub fn get_address_transactions(&self, address: &str, limit: Option<usize>) -> Result<Vec<(Hash256, Transaction, u64)>> {
+        self.db.get_address_transactions(address, limit.unwrap_or(100))
+    }
+    
+    /// Get rich list of addresses with highest balances (for blockchain explorer)
+    pub fn get_rich_list(&self, limit: usize) -> Result<Vec<(String, u64)>> {
+        let mut balances = Vec::new();
+        let addresses = self.get_all_addresses()?;
+        
+        for address in addresses {
+            let balance = self.get_balance(&address)?;
+            if balance > 0 {
+                balances.push((address, balance));
+            }
+        }
+        
+        // Sort by balance descending
+        balances.sort_by(|a, b| b.1.cmp(&a.1));
+        balances.truncate(limit);
+        
+        Ok(balances)
+    }
+    
+    /// Get comprehensive blockchain statistics (for blockchain explorer)
+    pub fn get_blockchain_stats(&self) -> Result<BlockchainStats> {
+        let chain_state = self.get_chain_info()?;
+        let total_addresses = self.get_all_addresses()?.len();
+        let recent_blocks = self.get_latest_blocks(10)?;
+        
+        // Calculate average block time from recent blocks
+        let mut total_time = 0u64;
+        let mut block_count = 0u64;
+        
+        for i in 1..recent_blocks.len() {
+            if recent_blocks[i-1].header.height > 0 {
+                total_time += recent_blocks[i-1].header.timestamp - recent_blocks[i].header.timestamp;
+                block_count += 1;
+            }
+        }
+        
+        let avg_block_time = if block_count > 0 { total_time / block_count } else { 450 };
+        
+        Ok(BlockchainStats {
+            height: chain_state.height,
+            difficulty: chain_state.difficulty,
+            total_supply: chain_state.total_supply,
+            total_addresses,
+            avg_block_time,
+            network_hashrate: self.estimate_network_hashrate()?,
+        })
+    }
+    
+    fn estimate_network_hashrate(&self) -> Result<f64> {
+        // Simplified hashrate estimation based on difficulty and block time
+        let difficulty = self.get_current_difficulty()? as f64;
+        let target_time = 450.0; // 7.5 minutes in seconds
+        
+        // Rough estimate: hashrate = difficulty * 2^difficulty / target_time
+        let hashrate = difficulty * (2.0_f64.powf(difficulty / 8.0)) / target_time;
+        Ok(hashrate)
+    }
+    
     pub fn is_valid_transaction(&self, tx: &Transaction) -> Result<bool> {
         self.validator.validate_transaction(tx, self)
     }
     
     pub fn calculate_next_difficulty(&self, height: u64) -> Result<u32> {
-        if height < 10 {
+        use crate::mining::difficulty::DifficultyCalculator;
+        
+        // Use production-grade difficulty calculator
+        let calculator = DifficultyCalculator::new();
+        
+        if height < calculator.adjustment_interval {
             return Ok(20); // Initial difficulty - higher for realistic mining times
         }
         
-        // Get last 10 blocks for difficulty adjustment
-        let mut total_time = 0u64;
-        for i in (height.saturating_sub(10))..height {
+        // Collect block timestamps for last adjustment interval
+        let mut block_times = Vec::new();
+        let start_height = height.saturating_sub(calculator.adjustment_interval);
+        
+        for i in start_height..=height {
             if let Some(block) = self.get_block_by_height(i)? {
-                if i > 0 {
-                    if let Some(prev_block) = self.get_block_by_height(i - 1)? {
-                        total_time += block.header.timestamp - prev_block.header.timestamp;
-                    }
-                }
+                block_times.push(block.header.timestamp);
             }
         }
         
-        let target_time = 450 * 10; // 7.5 minutes * 10 blocks
-        let current_difficulty = self.get_current_difficulty()?;
-        
-        if total_time == 0 {
-            return Ok(current_difficulty);
+        if block_times.len() < 2 {
+            return Ok(self.get_current_difficulty()?);
         }
         
-        // Adjust difficulty based on time ratio
-        let time_ratio = target_time as f64 / total_time as f64;
-        let new_difficulty = (current_difficulty as f64 * time_ratio) as u32;
+        let current_difficulty = self.get_current_difficulty()?;
         
-        // Limit difficulty changes to prevent wild swings
-        let max_change = current_difficulty / 4;
-        let new_difficulty = new_difficulty.max(current_difficulty.saturating_sub(max_change))
-                                        .min(current_difficulty.saturating_add(max_change));
+        // Use robust difficulty adjustment algorithm
+        let new_difficulty = calculator.calculate_next_difficulty(current_difficulty, &block_times)?;
         
-        Ok(new_difficulty.max(16)) // Minimum difficulty to prevent millisecond blocks
+        log::info!(
+            "Difficulty adjustment at height {}: {} -> {} (target: {} seconds per block)",
+            height,
+            current_difficulty,
+            new_difficulty,
+            calculator.target_block_time
+        );
+        
+        Ok(new_difficulty)
     }
     
     pub fn get_current_difficulty(&self) -> Result<u32> {
