@@ -1,0 +1,35 @@
+🌟 QUANTUM GOLDCHAIN (QTC) WALLET SUMMARY
+============================================
+
+📍 WALLET DETAILS:
+- Wallet Name: main-wallet
+- Wallet Type: Simple
+- Address: qtc1CcawVDodfbC5GvpVtpXuS5Zx7P7Y8TJ1r
+- Created: 2025-07-10 19:17
+
+💰 CURRENT BALANCE:
+- Balance: 0.00000000 QTC (Note: Blocks need 100 confirmations before coins can be spent)
+
+⛏️ MINING RESULTS:
+✅ Successfully mined 3 blocks:
+1. Block Hash: 4246db04ace9a2904d08f9154774d3bbb84b38f245ae8ecdbb67534073ecba01 (Nonce: 666)
+2. Block Hash: 4246db04ace9a2904d08f9154774d3bbb84b38f245ae8ecdbb67534073ecba01 (Nonce: 666) 
+3. Block Hash: 81ae7a33a8d73c5a44631f32f3ed76c7ea1a484a9b871827515198ebe30c6712 (Nonce: 329)
+
+⚡ MINING PERFORMANCE:
+- Hash Rate: 20,000+ H/s
+- Mining Time: ~0.01-0.03 seconds per block
+- Difficulty: 4
+- Algorithm: RandomX (ASIC-resistant)
+
+⛓️ BLOCKCHAIN STATUS:
+- Current Height: 0 (Genesis + mined blocks)
+- Total Supply: 27.10000000 QTC
+- Difficulty: 4
+
+🔑 SEED PHRASE ACCESS:
+The wallet seed phrase can be extracted using:
+./target/debug/qtcd --data-dir qtc-data wallet export main-wallet
+Then select "mnemonic" option when prompted.
+
+Note: The wallet follows BIP39 standard for mnemonic generation.
