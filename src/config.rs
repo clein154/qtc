@@ -75,7 +75,7 @@ impl Default for Config {
                 threads: num_cpus::get(),
                 target_block_time: 450, // 7.5 minutes
                 difficulty_adjustment_blocks: 10,
-                initial_difficulty: 12, // Reduced initial difficulty for easier mining
+                initial_difficulty: 6, // Very easy initial difficulty for testing
             },
             storage: StorageConfig {
                 data_dir,
@@ -116,7 +116,7 @@ impl Config {
                 threads: num_cpus::get(),
                 target_block_time: 450, // Same target time
                 difficulty_adjustment_blocks: 10,
-                initial_difficulty: 16, // Lower difficulty for testing
+                initial_difficulty: 6, // Very easy difficulty for testing
             },
             storage: StorageConfig {
                 data_dir,

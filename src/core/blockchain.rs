@@ -81,7 +81,7 @@ impl Blockchain {
             tip: genesis_hash,
             height: 0,
             total_work: 0,
-            difficulty: 20, // Initial difficulty - higher for realistic mining times
+            difficulty: 6, // Very easy initial difficulty for testing
             total_supply: 0, // Genesis block has no reward
         })?;
         
@@ -112,7 +112,7 @@ impl Blockchain {
         Block::new(
             Hash256::zero(), // Previous hash (genesis)
             vec![coinbase_tx],
-            20, // Initial difficulty - higher for realistic mining times
+            6, // Very easy initial difficulty for testing
             0, // Height
         )
     }

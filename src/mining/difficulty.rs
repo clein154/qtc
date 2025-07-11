@@ -24,7 +24,7 @@ impl DifficultyCalculator {
             target_block_time: 450, // 7.5 minutes
             adjustment_interval: 10, // Adjust every 10 blocks
             max_adjustment_factor: 4.0, // Max 4x adjustment per period
-            min_difficulty: 12, // Reduced minimum difficulty for easier mining
+            min_difficulty: 6, // Very easy minimum difficulty for testing
             max_difficulty: 255, // Theoretical maximum
         }
     }
@@ -38,7 +38,7 @@ impl DifficultyCalculator {
             target_block_time,
             adjustment_interval,
             max_adjustment_factor,
-            min_difficulty: 12, // Reduced minimum difficulty for easier mining
+            min_difficulty: 6, // Very easy minimum difficulty for testing
             max_difficulty: 255,
         }
     }
