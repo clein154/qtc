@@ -205,6 +205,7 @@ impl RestApi {
         Router::new()
             // Blockchain info endpoints
             .route("/api/v1/info", get(get_chain_info))
+            .route("/api/v1/chain/info", get(get_chain_info))  // Alternative endpoint
             .route("/api/v1/stats", get(get_chain_stats))
             
             // Block endpoints
@@ -269,10 +270,16 @@ async fn health_check() -> Json<ApiResponse<HashMap<String, String>>> {
 }
 
 async fn get_chain_info(State(state): State<AppState>) -> Json<ApiResponse<ChainInfo>> {
+    log::info!("🔗 API: get_chain_info called");
+    
     match state.blockchain.read() {
         Ok(blockchain) => {
+            log::info!("🔗 API: Got blockchain lock successfully");
             match blockchain.get_chain_info() {
                 Ok(chain_state) => {
+                    log::info!("🔗 API: Retrieved chain state - height: {}, difficulty: {}", 
+                        chain_state.height, chain_state.difficulty);
+                    
                     let info = ChainInfo {
                         height: chain_state.height,
                         tip: chain_state.tip.to_hex(),
@@ -281,12 +288,20 @@ async fn get_chain_info(State(state): State<AppState>) -> Json<ApiResponse<Chain
                         total_work: chain_state.total_work,
                         block_count: chain_state.height + 1,
                     };
+                    
+                    log::info!("🔗 API: Returning chain info response");
                     Json(ApiResponse::success(info))
                 }
-                Err(e) => Json(ApiResponse::error(format!("Failed to get chain info: {}", e))),
+                Err(e) => {
+                    log::error!("🔗 API: Failed to get chain info: {}", e);
+                    Json(ApiResponse::error(format!("Failed to get chain info: {}", e)))
+                }
             }
         }
-        Err(_) => Json(ApiResponse::error("Failed to access blockchain".to_string())),
+        Err(e) => {
+            log::error!("🔗 API: Failed to acquire blockchain lock: {:?}", e);
+            Json(ApiResponse::error("Failed to access blockchain".to_string()))
+        }
     }
 }
 

@@ -11,6 +11,11 @@ use crate::{QtcError, Result};
 use clap::{Parser, Subcommand};
 use std::sync::{Arc, RwLock};
 use tokio::signal;
+use std::fs::File;
+
+use tar::Builder;
+use flate2::{Compression, GzBuilder};
+use daemonize::Daemonize;
 
 #[derive(Parser)]
 #[command(name = "qtcd")]
@@ -521,6 +526,39 @@ async fn start_node(
     mine: bool,
     mining_address: Option<String>,
 ) -> Result<()> {
+    if daemon {
+        // Properly daemonize the process before starting the node
+        let daemonize = Daemonize::new()
+            .pid_file("/tmp/qtcd.pid")
+            .chown_pid_file(true)
+            .working_directory("/tmp")
+            .umask(0o777)
+            .stderr(std::fs::File::create("/tmp/qtcd.err").unwrap())
+            .stdout(std::fs::File::create("/tmp/qtcd.out").unwrap());
+        
+        match daemonize.start() {
+            Ok(_) => {
+                // This code runs in the detached daemon process
+                log::info!("QTC daemon started successfully");
+                start_node_services(config, db, mine, mining_address).await
+            }
+            Err(e) => {
+                eprintln!("Failed to daemonize: {}", e);
+                Err(QtcError::InvalidInput(format!("Daemon startup failed: {}", e)))
+            }
+        }
+    } else {
+        // Run in foreground mode
+        start_node_services(config, db, mine, mining_address).await
+    }
+}
+
+async fn start_node_services(
+    config: Config,
+    db: Arc<Database>,
+    mine: bool,
+    mining_address: Option<String>,
+) -> Result<()> {
     println!("🚀 Starting Quantum Goldchain (QTC) Node...");
     
     // Initialize blockchain
@@ -605,26 +643,17 @@ async fn start_node(
         println!("🔌 WebSocket: ws://localhost:{}", config.api.websocket_port);
     }
     
-    if daemon {
-        println!("🔧 Running in daemon mode. Press Ctrl+C to stop.");
-        
-        // Wait for termination signal
-        signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
-        
-        println!("\n🛑 Shutting down QTC Node...");
-        
-        // Cancel all tasks
-        for handle in api_handles {
-            handle.abort();
-        }
-        
-        println!("✅ QTC Node stopped gracefully.");
-    } else {
-        // Wait for all tasks to complete
-        for handle in api_handles {
-            let _ = handle.await;
-        }
+    // Wait for termination signal (both daemon and foreground modes)
+    signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
+    
+    println!("\n🛑 Shutting down QTC Node...");
+    
+    // Cancel all tasks
+    for handle in api_handles {
+        handle.abort();
     }
+    
+    println!("✅ QTC Node stopped gracefully.");
     
     Ok(())
 }
@@ -840,9 +869,43 @@ async fn handle_db_command(db: Arc<Database>, cmd: DbCommands) -> Result<()> {
         
         DbCommands::Backup { path } => {
             println!("💾 Creating database backup...");
-            // Database backup functionality would go here
-            log::info!("Database backup to {} not yet implemented", path);
-            println!("✅ Backup created at: {}", path);
+            
+            // Get database path from config
+            let config = Config::load().unwrap_or_default();
+            let db_path = &config.storage.data_dir;
+            
+            if !db_path.exists() {
+                return Err(QtcError::Storage("Database directory does not exist".to_string()));
+            }
+            
+            // Create backup file
+            let backup_file = File::create(&path)
+                .map_err(|e| QtcError::Storage(format!("Failed to create backup file: {}", e)))?;
+            
+            // Create gzip encoder
+            let gz_encoder = GzBuilder::new()
+                .filename(format!("qtc-backup-{}.tar", chrono::Utc::now().format("%Y%m%d-%H%M%S")))
+                .write(backup_file, Compression::default());
+            
+            // Create tar builder
+            let mut tar_builder = Builder::new(gz_encoder);
+            
+            // Add entire database directory to archive
+            tar_builder.append_dir_all("qtc-data", db_path)
+                .map_err(|e| QtcError::Storage(format!("Failed to create backup archive: {}", e)))?;
+            
+            // Finalize the archive
+            tar_builder.finish()
+                .map_err(|e| QtcError::Storage(format!("Failed to finalize backup: {}", e)))?;
+            
+            let file_size = std::fs::metadata(&path)
+                .map(|m| m.len())
+                .unwrap_or(0);
+            
+            println!("✅ Backup created successfully!");
+            println!("📁 File: {}", path);
+            println!("📏 Size: {:.2} MB", file_size as f64 / 1024.0 / 1024.0);
+            log::info!("Database backup created successfully at {}", path);
         }
         
         DbCommands::Repair => {
